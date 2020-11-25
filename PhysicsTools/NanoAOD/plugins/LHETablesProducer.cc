@@ -1,30 +1,74 @@
 #include "FWCore/Framework/interface/global/EDProducer.h"
 #include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/Run.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "FWCore/Utilities/interface/transform.h"
 #include "DataFormats/NanoAOD/interface/FlatTable.h"
+#include "DataFormats/NanoAOD/interface/UniqueString.h"
 #include "SimDataFormats/GeneratorProducts/interface/LHEEventProduct.h"
+#include "SimDataFormats/GeneratorProducts/interface/LHERunInfoProduct.h"
 #include "TLorentzVector.h"
 
 #include <vector>
 #include <iostream>
+#include <boost/algorithm/string.hpp>
 
-class LHETablesProducer : public edm::global::EDProducer<> {
+class LHETablesProducer : public edm::global::EDProducer<edm::BeginRunProducer> {
 public:
   LHETablesProducer(edm::ParameterSet const& params)
-      : lheTag_(edm::vector_transform(params.getParameter<std::vector<edm::InputTag>>("lheInfo"),
+      : lheLabel_(params.getParameter<std::vector<edm::InputTag>>("lheInfo")),
+        lheTag_(edm::vector_transform(lheLabel_,
                                       [this](const edm::InputTag& tag) { return mayConsume<LHEEventProduct>(tag); })),
+        lheRunTag_(edm::vector_transform(
+            lheLabel_, [this](const edm::InputTag& tag) { return mayConsume<LHERunInfoProduct, edm::InRun>(tag); })),
         precision_(params.getParameter<int>("precision")),
         storeLHEParticles_(params.getParameter<bool>("storeLHEParticles")),
         storeAllLHEInfo_(params.getParameter<bool>("storeAllLHEInfo")) {
     produces<nanoaod::FlatTable>("LHE");
     if (storeLHEParticles_)
       produces<nanoaod::FlatTable>("LHEPart");
+    if (storeAllLHEInfo_)
+      produces<nanoaod::UniqueString,edm::InRun>("LHEInit");
   }
 
   ~LHETablesProducer() override {}
+  
+  void globalBeginRunProduce(edm::Run& iRun, edm::EventSetup const&) const override { 
+    edm::Handle<LHERunInfoProduct> lheInfo;
+
+    for (const auto& lheLabel : lheLabel_) {
+      iRun.getByLabel(lheLabel, lheInfo);
+      if (lheInfo.isValid()) {
+        break;
+      }
+    }
+    if (storeAllLHEInfo_ && lheInfo.isValid()) {
+      // store LHE HEPRUP init
+      auto hr = lheInfo->heprup();
+      std::ostringstream strs;
+      strs << hr.IDBMUP.first  << " ";
+      strs << hr.IDBMUP.second << " ";
+      strs << hr.EBMUP.first   << " ";
+      strs << hr.EBMUP.second  << " ";
+      strs << hr.PDFGUP.first  << " ";
+      strs << hr.PDFGUP.second << " ";
+      strs << hr.PDFSUP.first  << " ";
+      strs << hr.PDFSUP.second << " ";
+      strs << hr.IDWTUP        << " ";
+      strs << hr.NPRUP         << " ";
+      for (int i = 0; i < hr.NPRUP; ++i) {
+        strs << "\n";
+        strs << hr.XSECUP[i] << " ";
+        strs << hr.XERRUP[i] << " ";
+        strs << hr.XMAXUP[i] << " ";
+        strs << hr.LPRUP[i]  << " ";
+      }
+    
+      iRun.put(std::make_unique<nanoaod::UniqueString>(strs.str()), "LHEInit");
+    }
+  }
 
   void produce(edm::StreamID id, edm::Event& iEvent, const edm::EventSetup& iSetup) const override {
     auto lheTab = std::make_unique<nanoaod::FlatTable>(1, "LHE", true);
@@ -58,6 +102,12 @@ public:
     double alphaQED=0;
     double scale  = 0;
     int    idproc = 0;
+    int    rwl_type   = 0;
+    int    rwl_index  = 0;
+    int    rwl_seed   = 0;
+    int    rwl_n1     = 0;
+    int    rwl_n2     = 0;
+    double rwl_weight = 0;
 
     const auto& hepeup = lheProd.hepeup();
     const auto& pup = hepeup.PUP;
@@ -79,6 +129,24 @@ public:
     alphaQED = hepeup.AQEDUP; 
     scale  = hepeup.SCALUP;
     idproc = hepeup.IDPRUP;
+    if (storeAllLHEInfo_){
+      for (unsigned int i = 0; i < lheProd.comments_size(); ++i) {
+        std::string comment(lheProd.getComment(i));
+        if (comment.find("#rwgt") != std::string::npos) {
+          std::vector<std::string> vcomment;
+          boost::algorithm::split(vcomment, comment, boost::is_any_of("\t "), boost::token_compress_on);
+          if (vcomment.size() == 7) { // Powheg rwgt info
+            rwl_type   = std::stoi(vcomment[1]);
+            rwl_index  = std::stoi(vcomment[2]);
+            rwl_weight = std::stod(vcomment[3]);
+            rwl_seed   = std::stoi(vcomment[4]);
+            rwl_n1     = std::stoi(vcomment[5]);
+            rwl_n2     = std::stoi(vcomment[6]);
+            break;
+          }
+        }
+      }
+    }
     for (unsigned int i = 0, n = pup.size(); i < n; ++i) {
       int status = hepeup.ISTUP[i];
       int idabs = std::abs(hepeup.IDUP[i]);
@@ -171,6 +239,12 @@ public:
         out.addColumnValue<float>("AlphaQED", alphaQED, "Per-event alphaQED", nanoaod::FlatTable::FloatColumn);
         out.addColumnValue<float>("Scale", scale, "Per-event scale", nanoaod::FlatTable::FloatColumn);
         out.addColumnValue<uint8_t>("ProcessID", idproc, "Process id (as in the card ordering)", nanoaod::FlatTable::UInt8Column);
+        out.addColumnValue<int>("rwl_type", rwl_type,   "Per-event rwl_type for Powheg reweighting", nanoaod::FlatTable::IntColumn);
+        out.addColumnValue<int>("rwl_index", rwl_index,  "Per-event rwl_index for Powheg reweighting", nanoaod::FlatTable::IntColumn);
+        out.addColumnValue<float>("rwl_weight", rwl_weight, "Per-event rwl_weight for Powheg reweighting", nanoaod::FlatTable::FloatColumn);
+        out.addColumnValue<int>("rwl_seed", rwl_seed,   "Per-event rwl_seed for Powheg reweighting", nanoaod::FlatTable::IntColumn);
+        out.addColumnValue<int>("rwl_n1", rwl_n1,     "Per-event rwl_n1 for Powheg reweighting", nanoaod::FlatTable::IntColumn);
+        out.addColumnValue<int>("rwl_n2", rwl_n2,     "Per-event rwl_n2 for Powheg reweighting", nanoaod::FlatTable::IntColumn);
     }
 
     auto outPart = std::make_unique<nanoaod::FlatTable>(vals_pt.size(), "LHEPart", false);
@@ -210,7 +284,9 @@ public:
   }
 
 protected:
+  const std::vector<edm::InputTag> lheLabel_;
   const std::vector<edm::EDGetTokenT<LHEEventProduct>> lheTag_;
+  const std::vector<edm::EDGetTokenT<LHERunInfoProduct>> lheRunTag_;
   const unsigned int precision_;
   const bool storeLHEParticles_;
   const bool storeAllLHEInfo_;
