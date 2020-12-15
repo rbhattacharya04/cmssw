@@ -388,6 +388,12 @@ def nanoGenWmassCustomize(process):
     
     process.lheInfoTable.storeAllLHEInfo = True
     
+    process.massWeightsTable = process.genWeightsTable.clone(
+        lheInfo = cms.VInputTag(cms.InputTag("correctMassWeights")),
+        postfix = 'CorrectMass',
+    )
+    process.nanoSequenceMC.insert(-1, process.massWeightsTable)
+    
     return process
 
 ### Era dependent customization
