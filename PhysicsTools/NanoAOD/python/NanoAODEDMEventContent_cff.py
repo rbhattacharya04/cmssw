@@ -7,7 +7,7 @@ NanoAODEDMEventContent = cms.PSet(
         "keep edmTriggerResults_*_*_*",  # event data
         "keep String_*_genModel_*",  # generator model data
         "keep nanoaodMergeableCounterTable_*Table_*_*", # accumulated per/run or per/lumi data
-        "keep nanoaodUniqueString_nanoMetadata_*_*",   # basic metadata
+        "keep nanoaodUniqueString_*_*_*",   # basic metadata
     )
 )
 
