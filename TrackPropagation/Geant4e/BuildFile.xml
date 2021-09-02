@@ -9,6 +9,7 @@
 <use   name="FWCore/MessageLogger"/>
 <use   name="DataFormats/CLHEP"/>
 <use   name="CLHEP"/>
+<use   name="Eigen"/>
 <export>
   <lib   name="1"/>
 </export>
