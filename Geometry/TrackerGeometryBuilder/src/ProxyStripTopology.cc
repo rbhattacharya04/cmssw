@@ -79,7 +79,7 @@ LocalError ProxyStripTopology::localError(float strip, float stripErr2,
   
   // In case of TwoBowedSurfacesDeformation one could add corrections here due to 
   // relative rotations of the sensors...
-  return specificTopology().localError(strip, stripErr2);
+  return specificTopology().localError(strip, stripErr2, trkPred);
 }
 
 

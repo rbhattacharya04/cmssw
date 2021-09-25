@@ -142,7 +142,8 @@ float TkRadialStripTopology::coveredStrips(const LocalPoint& lp1, const LocalPoi
 }  
 
 LocalPoint TkRadialStripTopology::localPosition(float strip) const {
-  return LocalPoint( yAxisOrientation() * originToIntersection() * tan15( stripAngle(strip) ), 0 );
+//   return LocalPoint( yAxisOrientation() * originToIntersection() * tan15( stripAngle(strip) ), 0 );
+  return LocalPoint( yAxisOrientation() * originToIntersection() * std::tan( stripAngle(strip) ), 0 );
 }
 
 LocalPoint TkRadialStripTopology::localPosition(const MeasurementPoint& mp) const {
@@ -180,6 +181,39 @@ LocalError TkRadialStripTopology::localError(float strip, float stripErr2) const
     xx( tt + t2*rr  ),
     yy( t2*tt + rr  ),
     xy( t1*( rr - tt ) );
+  
+  return LocalError( xx, xy, yy );
+}
+
+LocalError TkRadialStripTopology::localError( float strip, float stripErr2, const Topology::LocalTrackPred &trkPred) const {
+//   std::cout << "radial strips local error with angle" << std::endl;
+  
+  double phi = stripAngle(strip);
+
+  const double
+//     t1(tan15(phi)),    // std::tan(phif)), // (vdt::fast_tanf(phif)), 
+//     t2(t1*t1),
+    s1(std::sin(phi)), c1(std::cos(phi)),
+    cs(s1*c1), s2(s1*s1), c2(1-s2); // rotation matrix
+    
+  const double xfull = trkPred.point().x();
+  const double yfull = originToIntersection() + yAxisOrientation()*trkPred.point().y();
+  const double radial = s1*xfull + c1*yfull;
+    
+  const double
+    tt( stripErr2 * std::pow( radial*angularWidth() ,2.f) ), // tangential sigma^2   *c2
+    rr( theRadialSigma/c2),                                   // radial sigma^2( uniform prob density along strip)  *c2
+
+//     xx( tt + t2*rr  ),
+//     yy( t2*tt + rr  ),
+//     xy( t1*( rr - tt ) );
+
+
+    xx(  c2*tt + s2*rr      ),
+    yy(  s2*tt + c2*rr      ),
+    xy( cs*( rr - tt ) );
+    
+//   std::cout << "tt = " << tt << " rr = " << rr << std::endl;
   
   return LocalError( xx, xy, yy );
 }
