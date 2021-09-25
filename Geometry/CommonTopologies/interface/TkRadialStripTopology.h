@@ -82,9 +82,6 @@ class TkRadialStripTopology final : public RadialStripTopology {
    */
   LocalError localError(float strip, float stripErr2) const override;
 
-  LocalError localError( float strip, float stripErr2,
-                            const Topology::LocalTrackPred &trkPred) const override;
-  
   /** 
    * LocalError for a given MeasurementPoint with known MeasurementError.
    * This may be used in Kalman filtering and hence must allow possible
