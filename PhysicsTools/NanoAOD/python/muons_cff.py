@@ -7,6 +7,7 @@ from Configuration.Eras.Modifier_run2_nanoAOD_94XMiniAODv2_cff import run2_nanoA
 from Configuration.Eras.Modifier_run2_nanoAOD_102Xv1_cff import run2_nanoAOD_102Xv1
 from PhysicsTools.NanoAOD.common_cff import *
 import PhysicsTools.PatAlgos.producersLayer1.muonProducer_cfi
+from TrackPropagation.Geant4e.geantRefit_cff import geopro, Geant4ePropagator
 
 # this below is used only in some eras
 slimmedMuonsUpdated = cms.EDProducer("PATMuonUpdater",
@@ -117,6 +118,27 @@ fsrTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         )
     )
 
+tracksfrommuons = cms.EDProducer("TrackProducerFromPatMuons",
+                              src = cms.InputTag("linkedObjects", "muons"),
+                              innerTrackOnly = cms.bool(False),
+                              )
+
+trackrefit = cms.EDAnalyzer('ResidualGlobalCorrectionMakerG4e',
+                                   src = cms.InputTag("tracksfrommuons"),
+                                   fitFromGenParms = cms.bool(False),
+                                   fillTrackTree = cms.bool(False),
+                                   fillGrads = cms.bool(False),
+                                   fillRunTree = cms.bool(False),
+                                   doGen = cms.bool(False),
+                                   doSim = cms.bool(False),
+                                   doMuons = cms.bool(False),
+                                   doMuonAssoc = cms.bool(True),
+                                   bsConstraint = cms.bool(False),
+                                   applyHitQuality = cms.bool(True),
+                                   corFile = cms.string(""),
+
+)
+
 muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("linkedObjects","muons"),
     cut = cms.string(""), #we should not filter on cross linked collections
@@ -175,6 +197,7 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         mvaTTH = ExtVar(cms.InputTag("muonMVATTH"),float, doc="TTH MVA lepton ID score",precision=14),
         mvaLowPt = ExtVar(cms.InputTag("muonMVALowPt"),float, doc="Low pt muon ID score",precision=14),
         fsrPhotonIdx = ExtVar(cms.InputTag("muonFSRassociation:fsrIndex"),int, doc="Index of the associated FSR photon"),
+        cvhPt = ExtVar(cms.InputTag("trackrefit:corPt"), float, doc="Refitted track pt", precision=14),
     ),
 )
 
@@ -208,5 +231,5 @@ muonMCTable = cms.EDProducer("CandMCMatchTableProducer",
 
 muonSequence = cms.Sequence(slimmedMuonsUpdated+isoForMu + ptRatioRelForMu + slimmedMuonsWithUserData + finalMuons + finalLooseMuons )
 muonMC = cms.Sequence(muonsMCMatchForTable + muonMCTable)
-muonTables = cms.Sequence(muonFSRphotons + muonFSRassociation + muonMVATTH + muonMVALowPt + muonTable + fsrTable)
+muonTables = cms.Sequence(muonFSRphotons + muonFSRassociation + muonMVATTH + muonMVALowPt + geopro + tracksfrommuons + trackrefit + muonTable + fsrTable)
 
