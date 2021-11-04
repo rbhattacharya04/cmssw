@@ -7,7 +7,6 @@ from Configuration.Eras.Modifier_run2_nanoAOD_94XMiniAODv2_cff import run2_nanoA
 from Configuration.Eras.Modifier_run2_nanoAOD_102Xv1_cff import run2_nanoAOD_102Xv1
 from PhysicsTools.NanoAOD.common_cff import *
 import PhysicsTools.PatAlgos.producersLayer1.muonProducer_cfi
-from TrackPropagation.Geant4e.geantRefit_cff import geopro, Geant4ePropagator
 
 # this below is used only in some eras
 slimmedMuonsUpdated = cms.EDProducer("PATMuonUpdater",
@@ -118,12 +117,18 @@ fsrTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         )
     )
 
+# track refit stuff
+from TrackPropagation.Geant4e.geantRefit_cff import geopro, Geant4ePropagator
+from RecoTracker.TransientTrackingRecHit.TTRHBuilders_cff import *
+from RecoLocalTracker.SiPixelRecHits.PixelCPEESProducers_cff import *
+
 tracksfrommuons = cms.EDProducer("TrackProducerFromPatMuons",
                               src = cms.InputTag("linkedObjects", "muons"),
                               innerTrackOnly = cms.bool(False),
+                              ptMin = cms.double(15.),
                               )
 
-trackrefit = cms.EDAnalyzer('ResidualGlobalCorrectionMakerG4e',
+trackrefit = cms.EDProducer('ResidualGlobalCorrectionMakerG4e',
                                    src = cms.InputTag("tracksfrommuons"),
                                    fitFromGenParms = cms.bool(False),
                                    fillTrackTree = cms.bool(False),
@@ -136,7 +141,21 @@ trackrefit = cms.EDAnalyzer('ResidualGlobalCorrectionMakerG4e',
                                    bsConstraint = cms.bool(False),
                                    applyHitQuality = cms.bool(True),
                                    corFile = cms.string(""),
+)
 
+trackrefitbs = cms.EDProducer('ResidualGlobalCorrectionMakerG4e',
+                                   src = cms.InputTag("tracksfrommuons"),
+                                   fitFromGenParms = cms.bool(False),
+                                   fillTrackTree = cms.bool(False),
+                                   fillGrads = cms.bool(False),
+                                   fillRunTree = cms.bool(False),
+                                   doGen = cms.bool(False),
+                                   doSim = cms.bool(False),
+                                   doMuons = cms.bool(False),
+                                   doMuonAssoc = cms.bool(True),
+                                   bsConstraint = cms.bool(True),
+                                   applyHitQuality = cms.bool(True),
+                                   corFile = cms.string(""),
 )
 
 muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
@@ -197,7 +216,19 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         mvaTTH = ExtVar(cms.InputTag("muonMVATTH"),float, doc="TTH MVA lepton ID score",precision=14),
         mvaLowPt = ExtVar(cms.InputTag("muonMVALowPt"),float, doc="Low pt muon ID score",precision=14),
         fsrPhotonIdx = ExtVar(cms.InputTag("muonFSRassociation:fsrIndex"),int, doc="Index of the associated FSR photon"),
-        cvhPt = ExtVar(cms.InputTag("trackrefit:corPt"), float, doc="Refitted track pt", precision=14),
+        cvhPt = ExtVar(cms.InputTag("trackrefit:corPt"), float, doc="Refitted track pt", precision=-1),
+        cvhEta = ExtVar(cms.InputTag("trackrefit:corEta"), float, doc="Refitted track eta", precision=12),
+        cvhPhi = ExtVar(cms.InputTag("trackrefit:corPhi"), float, doc="Refitted track phi", precision=12),
+        # can you declare a max number of bits here?  technically for the moment this needs 16 bits, but might eventually need 17 or 18
+        #cvhGlobalIdxs = ExtVar(cms.InputTag("trackrefit:globalIdxs"), "std::vector<unsigned int>", doc="Indices for correction parameters")
+        # optimal precision tbd, but presumably can work the same way as for scalar floats
+        #cvhJacRef = ExtVar(cms.InputTag("trackrefit:jacRef"), "std::vector<float>", doc="jacobian for corrections", precision = 12)
+        cvhbsPt = ExtVar(cms.InputTag("trackrefitbs:corPt"), float, doc="Refitted track pt (with bs constraint)", precision=-1),
+        cvhbsEta = ExtVar(cms.InputTag("trackrefitbs:corEta"), float, doc="Refitted track eta (with bs constraint)", precision=12),
+        cvhbsPhi = ExtVar(cms.InputTag("trackrefitbs:corPhi"), float, doc="Refitted track phi (with bs constraint)", precision=12),
+        # optimal precision tbd, but presumably can work the same way as for scalar floats
+        #cvhbsJacRef = ExtVar(cms.InputTag("trackrefitbs:jacRef"), "std::vector<float>", doc="Jacobian for corrections (with bs constraint)", precision = 12)
+
     ),
 )
 
@@ -231,5 +262,5 @@ muonMCTable = cms.EDProducer("CandMCMatchTableProducer",
 
 muonSequence = cms.Sequence(slimmedMuonsUpdated+isoForMu + ptRatioRelForMu + slimmedMuonsWithUserData + finalMuons + finalLooseMuons )
 muonMC = cms.Sequence(muonsMCMatchForTable + muonMCTable)
-muonTables = cms.Sequence(muonFSRphotons + muonFSRassociation + muonMVATTH + muonMVALowPt + geopro + tracksfrommuons + trackrefit + muonTable + fsrTable)
+muonTables = cms.Sequence(muonFSRphotons + muonFSRassociation + muonMVATTH + muonMVALowPt + geopro + tracksfrommuons + trackrefit + trackrefitbs + muonTable + fsrTable)
 
