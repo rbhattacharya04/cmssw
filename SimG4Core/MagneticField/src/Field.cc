@@ -8,11 +8,14 @@
 
 using namespace sim;
 
-Field::Field(const MagneticField *f, double d) : G4MagneticField(), theCMSMagneticField(f), theDelta(d) {
+Field::Field(const MagneticField *f, double d) : G4MagneticField(), theCMSMagneticField(f), theDelta(d), dxi(0.) {
   for (int i = 0; i < 3; ++i) {
     oldx[i] = 1.0e12;
     oldb[i] = 0.0;
+    offset[i] = 0.0;
   }
+  
+  std::cout << "Field constructor" << std::endl;
 }
 
 Field::~Field() {}
@@ -33,7 +36,13 @@ void Field::GetFieldValue(const G4double xyz[4], G4double bfield[3]) const {
     oldx[2] = xyz[2];
   }
 
-  bfield[0] = oldb[0];
-  bfield[1] = oldb[1];
-  bfield[2] = oldb[2];
+  bfield[0] = oldb[0] + offset[0];
+  bfield[1] = oldb[1] + offset[1];
+  bfield[2] = oldb[2] + offset[2];
+}
+
+void Field::SetOffset(double x, double y, double z) {  
+  offset[0] = x*CLHEP::tesla;
+  offset[1] = y*CLHEP::tesla;
+  offset[2] = z*CLHEP::tesla;
 }

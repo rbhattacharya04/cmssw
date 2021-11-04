@@ -308,7 +308,7 @@ NanoAODOutputModule::openFile(edm::FileBlock const&) {
   for (const auto & keep : keeps[edm::InRun]) {
       if(keep.first->className() == "nanoaod::MergeableCounterTable" )
 	      m_runTables.push_back(SummaryTableOutputBranches(keep.first, keep.second));
-      else if(keep.first->className() == "nanoaod::UniqueString" && keep.first->moduleLabel() == "nanoMetadata")
+      else if(keep.first->className() == "nanoaod::UniqueString")
 	      m_nanoMetadata.emplace_back(keep.first->productInstanceName(), keep.second);
       else throw cms::Exception("Configuration", "NanoAODOutputModule cannot handle class " + keep.first->className() + " in Run branch");     
   }
