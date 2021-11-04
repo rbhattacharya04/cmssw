@@ -734,7 +734,7 @@ class ConfigBuilder(object):
         try:
             if len(self.stepMap):
                 self.loadAndRemember(self.GeometryCFF)
-                if ('SIM' in self.stepMap or 'reSIM' in self.stepMap) and not self._options.fast:
+                if ('SIM' in self.stepMap or 'reSIM' in self.stepMap or 'NANO' in self.stepMap) and not self._options.fast:
                     self.loadAndRemember(self.SimGeometryCFF)
                     if self.geometryDBLabel:
                         self.executeAndRemember('process.XMLFromDBSource.label = cms.string("%s")'%(self.geometryDBLabel))
