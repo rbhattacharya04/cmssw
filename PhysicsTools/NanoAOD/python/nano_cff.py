@@ -31,6 +31,7 @@ from Configuration.Eras.Modifier_run2_tau_ul_2016_cff import run2_tau_ul_2016
 from Configuration.Eras.Modifier_run2_tau_ul_2018_cff import run2_tau_ul_2018
 from Configuration.Eras.Modifier_run2_egamma_2017_cff import run2_egamma_2017
 from Configuration.Eras.Modifier_run2_egamma_2018_cff import run2_egamma_2018
+from Configuration.Eras.Modifier_run2_nanoAOD_LowPU_cff import run2_nanoAOD_LowPU
 
 nanoMetadata = cms.EDProducer("UniqueStringProducer",
     strings = cms.PSet(
@@ -110,7 +111,7 @@ lheInfoTable = cms.EDProducer("LHETablesProducer",
 
 l1bits=cms.EDProducer("L1TriggerResultsConverter", src=cms.InputTag("gtStage2Digis"), legacyL1=cms.bool(False),
                       storeUnprefireableBit=cms.bool(True), src_ext=cms.InputTag("gtStage2Digis"))
-(run2_miniAOD_80XLegacy | run2_nanoAOD_94X2016 | run2_nanoAOD_94XMiniAODv1 | run2_nanoAOD_94XMiniAODv2 | run2_nanoAOD_102Xv1).toModify(l1bits, storeUnprefireableBit=False)
+(run2_miniAOD_80XLegacy | run2_nanoAOD_94X2016 | run2_nanoAOD_94XMiniAODv1 | run2_nanoAOD_94XMiniAODv2 | run2_nanoAOD_102Xv1 | run2_nanoAOD_LowPU).toModify(l1bits, storeUnprefireableBit=False)
 
 nanoSequenceCommon = cms.Sequence(
         nanoMetadata + jetSequence + muonSequence + tauSequence + electronSequence+photonSequence+vertexSequence+
@@ -133,7 +134,7 @@ nanoSequenceMC = nanoSequenceFS.copy()
 nanoSequenceMC.insert(nanoSequenceFS.index(nanoSequenceCommon)+1,nanoSequenceOnlyFullSim)
 
 # modify extraFlagsTable to store ecalBadCalibFilter decision which is re-run with updated bad crystal list for 2017 and 2018 samples
-for modifier in run2_nanoAOD_94XMiniAODv1, run2_nanoAOD_94XMiniAODv2, run2_nanoAOD_102Xv1:
+for modifier in run2_nanoAOD_94XMiniAODv1, run2_nanoAOD_94XMiniAODv2, run2_nanoAOD_102Xv1, run2_nanoAOD_LowPU:
     modifier.toModify(extraFlagsTable, variables= cms.PSet())
     modifier.toModify(extraFlagsTable, variables = dict(Flag_ecalBadCalibFilterV2 = ExtVar(cms.InputTag("ecalBadCalibFilterNanoTagger"), bool, doc = "Bad ECAL calib flag (updated xtal list)")))
 
@@ -200,6 +201,12 @@ def nanoAOD_recalibrateMETs(process,isData):
         process = nanoAOD_addDeepMET(process,
                                      addDeepMETProducer=nanoAOD_DeepMET_switch.nanoAOD_produceDeepMET_switch,
                                      ResponseTune_Graph=nanoAOD_DeepMET_switch.ResponseTune_Graph)
+        # modify the graph for the low PU era
+        run2_nanoAOD_LowPU.toModify(process.deepMETsResolutionTune, graph_path='PhysicsTools/NanoAOD/data/deepmetmodel/deepmet_lowPU.pb')
+        run2_nanoAOD_LowPU.toModify(process.deepMETsResponseTune, graph_path='PhysicsTools/NanoAOD/data/deepmetmodel/deepmet_lowPU_Resp.pb')
+        # no leptons in the training. so remove leptons from the dnn input
+        run2_nanoAOD_LowPU.toModify(process.deepMETsResolutionTune, ignore_leptons=cms.bool(True))
+        run2_nanoAOD_LowPU.toModify(process.deepMETsResponseTune, ignore_leptons=cms.bool(True))
 
     # if included in Nano, and not computed in the fly, then it should be extracted from minAOD
     extractDeepMETs = nanoAOD_DeepMET_switch.nanoAOD_addDeepMET_switch and not nanoAOD_DeepMET_switch.nanoAOD_produceDeepMET_switch
@@ -258,7 +265,7 @@ def nanoAOD_activateVID(process):
     for modname in electron_id_modules_WorkingPoints_nanoAOD.modules:
         setupAllVIDIdsInModule(process,modname,setupVIDElectronSelection)
     process.electronSequence.insert(process.electronSequence.index(process.bitmapVIDForEle),process.egmGsfElectronIDSequence)
-    for modifier in run2_egamma_2017,run2_egamma_2018,run2_miniAOD_80XLegacy,run2_nanoAOD_94XMiniAODv1,run2_nanoAOD_94XMiniAODv2,run2_nanoAOD_94X2016,run2_nanoAOD_102Xv1,run2_nanoAOD_106Xv1:
+    for modifier in run2_egamma_2017,run2_egamma_2018,run2_miniAOD_80XLegacy,run2_nanoAOD_94XMiniAODv1,run2_nanoAOD_94XMiniAODv2,run2_nanoAOD_94X2016,run2_nanoAOD_102Xv1,run2_nanoAOD_106Xv1,run2_nanoAOD_LowPU:
         modifier.toModify(process.electronMVAValueMapProducer, srcMiniAOD = "slimmedElectronsUpdated")
         modifier.toModify(process.egmGsfElectronIDs, physicsObjectSrc = "slimmedElectronsUpdated")
 
@@ -334,7 +341,7 @@ def nanoAOD_customizeCommon(process):
         nanoAOD_addDeepFlavourTag_switch = cms.untracked.bool(False),
         )
     run2_miniAOD_80XLegacy.toModify(nanoAOD_addDeepInfo_switch, nanoAOD_addDeepBTag_switch = cms.untracked.bool(True))
-    for modifier in run2_miniAOD_80XLegacy, run2_nanoAOD_94X2016, run2_nanoAOD_94XMiniAODv1, run2_nanoAOD_94XMiniAODv2:
+    for modifier in run2_miniAOD_80XLegacy, run2_nanoAOD_94X2016, run2_nanoAOD_94XMiniAODv1, run2_nanoAOD_94XMiniAODv2, run2_nanoAOD_LowPU:
         modifier.toModify(nanoAOD_addDeepInfo_switch, nanoAOD_addDeepFlavourTag_switch =  cms.untracked.bool(True))
     process = nanoAOD_addDeepInfo(process,
                                   addDeepBTag=nanoAOD_addDeepInfo_switch.nanoAOD_addDeepBTag_switch,
@@ -381,7 +388,7 @@ def nanoAOD_customizeCommon(process):
     )
     run2_miniAOD_80XLegacy.toModify(addTauIds_switch, nanoAOD_addTauIds_switch = cms.untracked.bool(False))
     ((run2_miniAOD_devel | run2_tau_ul_2016 | run2_tau_ul_2018) & \
-    (~(run2_nanoAOD_94X2016 | run2_nanoAOD_94XMiniAODv1 | run2_nanoAOD_94XMiniAODv2 | run2_nanoAOD_102Xv1 | run2_nanoAOD_106Xv1))).toModify(addTauIds_switch,
+    (~(run2_nanoAOD_94X2016 | run2_nanoAOD_94XMiniAODv1 | run2_nanoAOD_94XMiniAODv2 | run2_nanoAOD_102Xv1 | run2_nanoAOD_106Xv1 | run2_nanoAOD_LowPU))).toModify(addTauIds_switch,
                                                                                                                                            nanoAOD_addTauIds_switch = cms.untracked.bool(False))
     if addTauIds_switch.nanoAOD_addTauIds_switch:
         process = nanoAOD_addTauIds(process)
@@ -448,5 +455,5 @@ _102x_sequence = nanoSequenceCommon.copy()
 _102x_sequence.insert(_102x_sequence.index(jetSequence),extraFlagsProducers102x)
 _102x_sequence.insert(_102x_sequence.index(simpleCleanerTable)+1,extraFlagsTable)
 
-for modifier in run2_nanoAOD_94XMiniAODv1, run2_nanoAOD_94XMiniAODv2, run2_nanoAOD_102Xv1:
+for modifier in run2_nanoAOD_94XMiniAODv1, run2_nanoAOD_94XMiniAODv2, run2_nanoAOD_102Xv1, run2_nanoAOD_LowPU:
     modifier.toReplaceWith(nanoSequenceCommon, _102x_sequence)
