@@ -159,6 +159,11 @@ trackrefitbs = cms.EDProducer('ResidualGlobalCorrectionMakerG4e',
                                    corFile = cms.string(""),
 )
 
+mergedGlobalIdxs = cms.EDProducer("GlobalIdxProducer",
+                                  src0 = cms.InputTag("trackrefit", "globalIdxs"),
+                                  src1 = cms.InputTag("trackrefitbs", "globalIdxs")
+)
+
 muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("linkedObjects","muons"),
     cut = cms.string(""), #we should not filter on cross linked collections
@@ -221,10 +226,12 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         cvhEta = ExtVar(cms.InputTag("trackrefit:corEta"), float, doc="Refitted track eta", precision=12),
         cvhPhi = ExtVar(cms.InputTag("trackrefit:corPhi"), float, doc="Refitted track phi", precision=12),
         cvhCharge = ExtVar(cms.InputTag("trackrefit:corCharge"), int, doc="Refitted track charge"),
+        cvhEdmval = ExtVar(cms.InputTag("trackrefit:edmval"), float, doc="Refitted estimated distance to minimum", precision=10),
         cvhbsPt = ExtVar(cms.InputTag("trackrefitbs:corPt"), float, doc="Refitted track pt (with bs constraint)", precision=-1),
         cvhbsEta = ExtVar(cms.InputTag("trackrefitbs:corEta"), float, doc="Refitted track eta (with bs constraint)", precision=12),
         cvhbsPhi = ExtVar(cms.InputTag("trackrefitbs:corPhi"), float, doc="Refitted track phi (with bs constraint)", precision=12),
         cvhbsCharge = ExtVar(cms.InputTag("trackrefitbs:corCharge"), int, doc="Refitted track charge (with bs constraint)"),
+        cvhbsEdmval = ExtVar(cms.InputTag("trackrefitbs:edmval"), float, doc="Refitted estimated distance to minimum (with bs constraint)", precision=10),
     ),
 )
 
@@ -235,11 +242,13 @@ muonExternalVecVarsTable = cms.EDProducer("FlattenedCandValueMapVectorTableProdu
     doc = muonTable.doc,
     variables = cms.PSet(
         # can you declare a max number of bits here?  technically for the moment this needs 16 bits, but might eventually need 17 or 18
-        GlobalIdxs = ExtVar(cms.InputTag("trackrefit:globalIdxs"), "std::vector<int>", doc="Indices for correction parameters"),
+        mergedGlobalIdxs = ExtVar(cms.InputTag("mergedGlobalIdxs"), "std::vector<int>", doc="Indices for correction parameters"),
         # optimal precision tbd, but presumably can work the same way as for scalar floats
         JacRef = ExtVar(cms.InputTag("trackrefit:jacRef"), "std::vector<float>", doc="jacobian for corrections", precision = 12),
+        MomCov = ExtVar(cms.InputTag("trackrefit:momCov"), "std::vector<float>", doc="covariance matrix for qop, lambda, phi", precision = 12),
         # optimal precision tbd, but presumably can work the same way as for scalar floats
         bsJacRef = ExtVar(cms.InputTag("trackrefitbs:jacRef"), "std::vector<float>", doc="Jacobian for corrections (with bs constraint)", precision = 12),
+        bsMomCov = ExtVar(cms.InputTag("trackrefitbs:momCov"), "std::vector<float>", doc="covariance matrix for qop, lambda, phi (with bs constraint)", precision = 12),
     )
 )
 
@@ -275,7 +284,7 @@ muonMCTable = cms.EDProducer("CandMCMatchTableProducer",
 
 muonSequence = cms.Sequence(slimmedMuonsUpdated+isoForMu + ptRatioRelForMu + slimmedMuonsWithUserData + finalMuons + finalLooseMuons )
 muonMC = cms.Sequence(muonsMCMatchForTable + muonMCTable)
-muonTables = cms.Sequence(muonFSRphotons + muonFSRassociation + muonMVATTH + muonMVALowPt + geopro + tracksfrommuons + trackrefit + trackrefitbs + muonTable + muonExternalVecVarsTable + fsrTable)
+muonTables = cms.Sequence(muonFSRphotons + muonFSRassociation + muonMVATTH + muonMVALowPt + geopro + tracksfrommuons + trackrefit + trackrefitbs + mergedGlobalIdxs + muonTable + muonExternalVecVarsTable + fsrTable)
 
-run2_nanoAOD_LowPU.toReplaceWith(muonTables, muonTables.copyAndExclude([geopro, tracksfrommuons, trackrefit, trackrefitbs, muonExternalVecVarsTable]))
+run2_nanoAOD_LowPU.toReplaceWith(muonTables, muonTables.copyAndExclude([geopro, tracksfrommuons, trackrefit, trackrefitbs, mergedGlobalIdxs, muonExternalVecVarsTable]))
 
