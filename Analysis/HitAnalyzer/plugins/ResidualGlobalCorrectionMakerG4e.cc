@@ -56,10 +56,12 @@ private:
   edm::EDPutTokenT<edm::ValueMap<float>> outputCorEta_;
   edm::EDPutTokenT<edm::ValueMap<float>> outputCorPhi_;
   edm::EDPutTokenT<edm::ValueMap<int>> outputCorCharge_;
+  edm::EDPutTokenT<edm::ValueMap<float>> outputEdmval_;
 
   edm::EDPutTokenT<edm::ValueMap<std::vector<int>>> outputGlobalIdxs_;
 
   edm::EDPutTokenT<edm::ValueMap<std::vector<float>>> outputJacRef_;
+  edm::EDPutTokenT<edm::ValueMap<std::vector<float>>> outputMomCov_;
 
 };
 
@@ -73,10 +75,12 @@ ResidualGlobalCorrectionMakerG4e::ResidualGlobalCorrectionMakerG4e(const edm::Pa
   outputCorEta_ = produces<edm::ValueMap<float>>("corEta");
   outputCorPhi_ = produces<edm::ValueMap<float>>("corPhi");
   outputCorCharge_ = produces<edm::ValueMap<int>>("corCharge");
+  outputEdmval_ = produces<edm::ValueMap<float>>("edmval");
 
   outputGlobalIdxs_ = produces<edm::ValueMap<std::vector<int>>>("globalIdxs");
 
   outputJacRef_ = produces<edm::ValueMap<std::vector<float>>>("jacRef");
+  outputMomCov_ = produces<edm::ValueMap<std::vector<float>>>("momCov");
   
 }
 
@@ -241,6 +245,9 @@ void ResidualGlobalCorrectionMakerG4e::produce(edm::Event &iEvent, const edm::Ev
   
   const bool dogen = fitFromGenParms_;
   
+  const bool dolocalupdate = true;
+
+
   using namespace edm;
 
   Handle<reco::TrackCollection> trackOrigH;
@@ -805,9 +812,11 @@ void ResidualGlobalCorrectionMakerG4e::produce(edm::Event &iEvent, const edm::Ev
   std::vector<float> corEtaV;
   std::vector<float> corPhiV;
   std::vector<int> corChargeV;
+  std::vector<float> edmvalV;
 
   std::vector<std::vector<int>> globalidxsV;
   std::vector<std::vector<float>> jacRefV;
+  std::vector<std::vector<float>> momCovV;
 
   std::array<double, 3> refParmsMomD;
 
@@ -815,9 +824,11 @@ void ResidualGlobalCorrectionMakerG4e::produce(edm::Event &iEvent, const edm::Ev
     corPtV.assign(muonAssoc->ref()->size(), -99.);
     corEtaV.assign(muonAssoc->ref()->size(), -99.);
     corPhiV.assign(muonAssoc->ref()->size(), -99.);
-    corChargeV.assign(muonAssoc->ref()->size(), -99.);
+    corChargeV.assign(muonAssoc->ref()->size(), -99);
+    edmvalV.assign(muonAssoc->ref()->size(), -99.);
     globalidxsV.assign(muonAssoc->ref()->size(), std::vector<int>());
     jacRefV.assign(muonAssoc->ref()->size(), std::vector<float>());
+    momCovV.assign(muonAssoc->ref()->size(), std::vector<float>());
   }
 
 //   for (const reco::Track &track : *trackOrigH) {
@@ -1280,6 +1291,10 @@ void ResidualGlobalCorrectionMakerG4e::produce(edm::Event &iEvent, const edm::Ev
 //         }
 //       }
 //     }
+
+    if (nvalid == 0) {
+      continue;
+    }
     
     nValidHits = nvalid;
     nValidPixelHits = nvalidpixel;
@@ -1619,6 +1634,8 @@ void ResidualGlobalCorrectionMakerG4e::produce(edm::Event &iEvent, const edm::Ev
     
     double chisqvalold = std::numeric_limits<double>::max();
     
+    bool anomDebug = false;
+
 //     constexpr unsigned int niters = 1;
 //     constexpr unsigned int niters = 3;
 //     constexpr unsigned int niters = 5;
@@ -2238,68 +2255,70 @@ void ResidualGlobalCorrectionMakerG4e::produce(edm::Event &iEvent, const edm::Ev
         //momentum kink residual
 //         AlgebraicVector5 idx0(0., 0., 0., 0., 0.);
         Matrix<double, 5, 1> idx0 = Matrix<double, 5, 1>::Zero();
-        if (iiter==0) {
-//         if (true) {
-          layerStates.push_back(updtsos);
-//           layerStatesStart.push_back(updtsos);
-          
+        if (dolocalupdate) {
+          if (iiter==0) {
+  //         if (true) {
+            layerStates.push_back(updtsos);
+  //           layerStatesStart.push_back(updtsos);
 
-        }
-        else {
-          //current state from previous state on this layer
-          //save current parameters  
-          
-          Matrix<double, 7, 1>& oldtsos = layerStates[ihit];
-          const Matrix<double, 5, 5> Hold = curv2localJacobianAltelossD(oldtsos, field, surface, dEdxlast, mmu, dbetaval);
-          const Matrix<double, 5, 1> dxlocal = Hold*dxfull.segment<5>(5*(ihit+1));
-          
-          const Point3DBase<double, GlobalTag> pos(oldtsos[0], oldtsos[1], oldtsos[2]);
-          const Point3DBase<double, LocalTag> localpos = surface.toLocal(pos);
-          
-          const Point3DBase<double, LocalTag> localposupd(localpos.x() + dxlocal[3], localpos.y() + dxlocal[4], localpos.z());
-          const Point3DBase<double, GlobalTag> posupd = surface.toGlobal(localposupd);
-         
-          
-          const Vector3DBase<double, GlobalTag> mom(oldtsos[3], oldtsos[4], oldtsos[5]);
-          const Vector3DBase<double, LocalTag> localmom = surface.toLocal(mom);
-          
-          const double dxdz = localmom.x()/localmom.z();
-          const double dydz = localmom.y()/localmom.z();
-          
-          
-          
-          const double dxdzupd = dxdz + dxlocal[1];
-          const double dydzupd = dydz + dxlocal[2];
-          
-          const double qop = oldtsos[6]/oldtsos.segment<3>(3).norm();
-          const double qopupd = qop + dxlocal[0];
-          
-          const double pupd = std::abs(1./qopupd);
-          const double charge = std::copysign(1., qopupd);
-          
-          const double signpz = std::copysign(1., localmom.z());
-          const double localmomfact = signpz/std::sqrt(1. + dxdzupd*dxdzupd + dydzupd*dydzupd);
-          const Vector3DBase<double, LocalTag> localmomupd(pupd*dxdzupd*localmomfact, pupd*dydzupd*localmomfact, pupd*localmomfact);
-          const Vector3DBase<double, GlobalTag> momupd = surface.toGlobal(localmomupd);
-                    
-          oldtsos[0] = posupd.x();
-          oldtsos[1] = posupd.y();
-          oldtsos[2] = posupd.z();
-          oldtsos[3] = momupd.x();
-          oldtsos[4] = momupd.y();
-          oldtsos[5] = momupd.z();
-          oldtsos[6] = charge;          
-          
-          updtsos = oldtsos;
-                    
-          localparms[0] = qopupd;
-          localparms[1] = dxdzupd;
-          localparms[2] = dydzupd;
-          localparms[3] = localposupd.x();
-          localparms[4] = localposupd.y();
-          
-          idx0 = localparms - localparmsprop;
-          
+
+          }
+          else {
+            //current state from previous state on this layer
+            //save current parameters
+
+            Matrix<double, 7, 1>& oldtsos = layerStates[ihit];
+            const Matrix<double, 5, 5> Hold = curv2localJacobianAltelossD(oldtsos, field, surface, dEdxlast, mmu, dbetaval);
+            const Matrix<double, 5, 1> dxlocal = Hold*dxfull.segment<5>(5*(ihit+1));
+
+            const Point3DBase<double, GlobalTag> pos(oldtsos[0], oldtsos[1], oldtsos[2]);
+            const Point3DBase<double, LocalTag> localpos = surface.toLocal(pos);
+
+            const Point3DBase<double, LocalTag> localposupd(localpos.x() + dxlocal[3], localpos.y() + dxlocal[4], localpos.z());
+            const Point3DBase<double, GlobalTag> posupd = surface.toGlobal(localposupd);
+
+
+            const Vector3DBase<double, GlobalTag> mom(oldtsos[3], oldtsos[4], oldtsos[5]);
+            const Vector3DBase<double, LocalTag> localmom = surface.toLocal(mom);
+
+            const double dxdz = localmom.x()/localmom.z();
+            const double dydz = localmom.y()/localmom.z();
+
+
+
+            const double dxdzupd = dxdz + dxlocal[1];
+            const double dydzupd = dydz + dxlocal[2];
+
+            const double qop = oldtsos[6]/oldtsos.segment<3>(3).norm();
+            const double qopupd = qop + dxlocal[0];
+
+            const double pupd = std::abs(1./qopupd);
+            const double charge = std::copysign(1., qopupd);
+
+            const double signpz = std::copysign(1., localmom.z());
+            const double localmomfact = signpz/std::sqrt(1. + dxdzupd*dxdzupd + dydzupd*dydzupd);
+            const Vector3DBase<double, LocalTag> localmomupd(pupd*dxdzupd*localmomfact, pupd*dydzupd*localmomfact, pupd*localmomfact);
+            const Vector3DBase<double, GlobalTag> momupd = surface.toGlobal(localmomupd);
+
+            oldtsos[0] = posupd.x();
+            oldtsos[1] = posupd.y();
+            oldtsos[2] = posupd.z();
+            oldtsos[3] = momupd.x();
+            oldtsos[4] = momupd.y();
+            oldtsos[5] = momupd.z();
+            oldtsos[6] = charge;
+
+            updtsos = oldtsos;
+
+            localparms[0] = qopupd;
+            localparms[1] = dxdzupd;
+            localparms[2] = dydzupd;
+            localparms[3] = localposupd.x();
+            localparms[4] = localposupd.y();
+
+            idx0 = localparms - localparmsprop;
+
+          }
         }
         
 //         if (false) {
@@ -3511,8 +3530,14 @@ void ResidualGlobalCorrectionMakerG4e::produce(edm::Event &iEvent, const edm::Ev
       niter = iiter + 1;
       edmval = -deltachisq[0];
       
-      if (std::isnan(edmval) || std::isinf(edmval) || std::abs(lamupd) > M_PI_2 || (iiter>0 && edmval > 1e4) ) {
-        std::cout << "WARNING: invalid parameter update!!!" << std::endl;
+      const double threshparam = dolocalupdate ? edmval : std::fabs(deltachisqval);
+
+//       if (iiter>0 && threshparam > 1e4) {
+//         anomDebug = true;
+//       }
+
+      if (std::isnan(edmval) || std::isinf(edmval) || std::abs(lamupd) > M_PI_2 || (iiter>0 && threshparam > 1e5) || (iiter>1 && threshparam > 1e4) ) {
+        std::cout << "WARNING: invalid parameter update!!!" << " edmval = " << edmval << " lamupd = " << lamupd << " deltachisqval = " << deltachisqval << std::endl;
         valid = false;
         break;
       }
@@ -3532,6 +3557,13 @@ void ResidualGlobalCorrectionMakerG4e::produce(edm::Event &iEvent, const edm::Ev
       
       
 //       std::cout << "iiter = " << iiter << " edmval = " << edmval << " chisqval = " << chisqval << std::endl;
+
+//       std::cout << "iiter = " << iiter << " edmval = " << edmval << " deltachisqval = " << deltachisqval << " chisqval = " << chisqval << std::endl;
+
+      if (anomDebug) {
+        std::cout << "anomDebug: iiter = " << iiter << " edmval = " << edmval << " deltachisqval = " << deltachisqval << " chisqval = " << chisqval << std::endl;
+      }
+
 //       std::cout <<"dxRef" << std::endl;
 //       std::cout << dxRef << std::endl;
 //       std::cout <<"dxOut" << std::endl;
@@ -3548,7 +3580,10 @@ void ResidualGlobalCorrectionMakerG4e::produce(edm::Event &iEvent, const edm::Ev
 //         break;
 //       }
       
-      if (edmval < 1e-5) {
+      if (dolocalupdate && edmval < 1e-5) {
+        break;
+      }
+      else if (!dolocalupdate && std::fabs(deltachisqval)<1e-5) {
         break;
       }
 //       else if (iiter==2) {
@@ -3581,7 +3616,7 @@ void ResidualGlobalCorrectionMakerG4e::produce(edm::Event &iEvent, const edm::Ev
       continue;
     }
     
-    if (!nValidPixelHitsFinal) {
+    if (!nValidHitsFinal) {
       continue;
     }
     
@@ -3931,6 +3966,7 @@ void ResidualGlobalCorrectionMakerG4e::produce(edm::Event &iEvent, const edm::Ev
       corEtaV[muonref.index()] = etaupd;
       corPhiV[muonref.index()] = phiupd;
       corChargeV[muonref.index()] = chargeupd;
+      edmvalV[muonref.index()] = edmval;
 
       auto &iglobalidxv = globalidxsV[muonref.key()];
       iglobalidxv.clear();
@@ -3944,6 +3980,15 @@ void ResidualGlobalCorrectionMakerG4e::produce(edm::Event &iEvent, const edm::Ev
       //eigen representation of the underlying vector storage
       Map<Matrix<float, 3, Dynamic, RowMajor> > momjacrefout(ijacrefv.data(), 3, nparsfinal);
       momjacrefout = ( (dxdparms).leftCols<3>().transpose() ).cast<float>();
+
+      auto &imomCov = momCovV[muonref.key()];
+      imomCov.assign(3*3, 0.);
+      Map<Matrix<float, 3, 3, RowMajor>> momCovout(imomCov.data(), 3, 3);
+      momCovout.triangularView<Upper>() = covfull.topLeftCorner<3,3>().cast<float>();
+//       std::cout << "covfull.topLeftCorner<3,3>()" << std::endl;
+//       std::cout << covfull.topLeftCorner<3,3>() << std::endl;
+//       std::cout << "momcovout" << std::endl;
+//       std::cout << momCovout << std::endl;
     }
 
 
@@ -3954,10 +3999,12 @@ void ResidualGlobalCorrectionMakerG4e::produce(edm::Event &iEvent, const edm::Ev
   edm::ValueMap<float> corEtaMap;
   edm::ValueMap<float> corPhiMap;
   edm::ValueMap<int> corChargeMap;
+  edm::ValueMap<float> edmvalMap;
 
   edm::ValueMap<std::vector<int>> globalidxsMap;
 
   edm::ValueMap<std::vector<float>> jacRefMap;
+  edm::ValueMap<std::vector<float>> momCovMap;
 
   if (doMuonAssoc_) {
     edm::ValueMap<float>::Filler corPtMapFiller(corPtMap);
@@ -3976,6 +4023,10 @@ void ResidualGlobalCorrectionMakerG4e::produce(edm::Event &iEvent, const edm::Ev
     corChargeMapFiller.insert(muonAssoc->ref(), std::make_move_iterator(corChargeV.begin()), std::make_move_iterator(corChargeV.end()));
     corChargeMapFiller.fill();
 
+    edm::ValueMap<float>::Filler edmvalMapFiller(edmvalMap);
+    edmvalMapFiller.insert(muonAssoc->ref(), std::make_move_iterator(edmvalV.begin()), std::make_move_iterator(edmvalV.end()));
+    edmvalMapFiller.fill();
+
     edm::ValueMap<std::vector<int>>::Filler globalidxsMapFiller(globalidxsMap);
     globalidxsMapFiller.insert(muonAssoc->ref(), std::make_move_iterator(globalidxsV.begin()), std::make_move_iterator(globalidxsV.end()));
     globalidxsMapFiller.fill();
@@ -3984,16 +4035,21 @@ void ResidualGlobalCorrectionMakerG4e::produce(edm::Event &iEvent, const edm::Ev
     jacRefMapFiller.insert(muonAssoc->ref(), std::make_move_iterator(jacRefV.begin()), std::make_move_iterator(jacRefV.end()));
     jacRefMapFiller.fill();
 
+    edm::ValueMap<std::vector<float>>::Filler momCovMapFiller(momCovMap);
+    momCovMapFiller.insert(muonAssoc->ref(), std::make_move_iterator(momCovV.begin()), std::make_move_iterator(momCovV.end()));
+    momCovMapFiller.fill();
   }
 
   iEvent.emplace(outputCorPt_, std::move(corPtMap));
   iEvent.emplace(outputCorEta_, std::move(corEtaMap));
   iEvent.emplace(outputCorPhi_, std::move(corPhiMap));
   iEvent.emplace(outputCorCharge_, std::move(corChargeMap));
+  iEvent.emplace(outputEdmval_, std::move(edmvalMap));
 
   iEvent.emplace(outputGlobalIdxs_, std::move(globalidxsMap));
 
   iEvent.emplace(outputJacRef_, std::move(jacRefMap));
+  iEvent.emplace(outputMomCov_, std::move(momCovMap));
 
 }
 
