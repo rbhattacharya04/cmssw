@@ -207,8 +207,8 @@ selections2016 = copy.deepcopy(triggerObjectTable.selections)
 for sel in selections2016:
     if sel.name=='Muon':
         sel.sel = cms.string("type(83) && pt > 5 && (coll('hlt*L3MuonCandidates') || coll('hlt*TkMuonCands') || coll('hlt*TrkMuonCands'))")
-        sel.qualityBits = cms.string("filter('*RelTrkIso*Filtered0p4') + 2*filter('hltL3cr*IsoFiltered0p09') + 4*filter('*OverlapFilter*IsoMu*PFTau*') + 8*filter('hltL3f*IsoFiltered0p09') + 1024*max(filter('hltL3fL1sMu*L3Filtered50*'),filter('hltL3fL1sMu*TkFiltered50*'))")
-        sel.qualityBitsDoc = cms.string("1 = TrkIsoVVL, 2 = Iso, 4 = OverlapFilter PFTau, 8 = IsoTkMu, 1024 = 1mu (Mu50)")
+        sel.qualityBits = cms.string("filter('*RelTrkIso*Filtered0p4') + 2*filter('hltL3cr*IsoFiltered0p09') + 4*filter('*OverlapFilter*IsoMu*PFTau*') + 8*filter('hltL3f*IsoFiltered0p09') + 16*filter('hltL3crIsoL1sMu22L1f0L2f10QL3f24QL3trkIsoFiltered0p09') + 32*filter('hltL3fL1sMu22L1f0Tkf24QL3trkIsoFiltered0p09') + 1024*max(filter('hltL3fL1sMu*L3Filtered50*'),filter('hltL3fL1sMu*TkFiltered50*'))")
+        sel.qualityBitsDoc = cms.string("1 = TrkIsoVVL, 2 = Iso, 4 = OverlapFilter PFTau, 8 = IsoTkMu, 16 = IsoMu24, 32 = IsoTkMu24, 1024 = 1mu (Mu50)")
     elif sel.name=='Tau':
         sel.sel = cms.string("type(84) && pt > 5 && coll('*Tau*') && ( filter('*LooseIso*') || filter('*MediumIso*') || filter('*MediumComb*Iso*') || filter('hltL2TauIsoFilter') || filter('*OverlapFilter*IsoMu*') || filter('*OverlapFilter*IsoEle*') || filter('*L1HLTMatched*') || filter('*Dz02*') )")
         sel.qualityBits = cms.string("(filter('*LooseIso*')-filter('*VLooseIso*'))+2*filter('*Medium*Iso*')+4*filter('*VLooseIso*')+8*0+16*filter('hltL2TauIsoFilter')+32*filter('*OverlapFilter*IsoMu*')+64*filter('*OverlapFilter*IsoEle*')+128*filter('*L1HLTMatched*')+256*filter('*Dz02*')")
