@@ -1,7 +1,5 @@
 import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.nano_eras_cff import *
-
-
 from PhysicsTools.NanoAOD.common_cff import *
 import PhysicsTools.PatAlgos.producersLayer1.muonProducer_cfi
 
@@ -116,6 +114,52 @@ fsrTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         )
     )
 
+# track refit stuff
+from TrackPropagation.Geant4e.geantRefit_cff import geopro, Geant4ePropagator
+from RecoTracker.TransientTrackingRecHit.TTRHBuilders_cff import *
+from RecoLocalTracker.SiPixelRecHits.PixelCPEESProducers_cff import *
+
+tracksfrommuons = cms.EDProducer("TrackProducerFromPatMuons",
+                              src = cms.InputTag("linkedObjects", "muons"),
+                              innerTrackOnly = cms.bool(False),
+                              ptMin = cms.double(8.),
+                              )
+
+trackrefit = cms.EDProducer('ResidualGlobalCorrectionMakerG4e',
+                                   src = cms.InputTag("tracksfrommuons"),
+                                   fitFromGenParms = cms.bool(False),
+                                   fillTrackTree = cms.bool(False),
+                                   fillGrads = cms.bool(False),
+                                   fillRunTree = cms.bool(False),
+                                   doGen = cms.bool(False),
+                                   doSim = cms.bool(False),
+                                   doMuons = cms.bool(False),
+                                   doMuonAssoc = cms.bool(True),
+                                   bsConstraint = cms.bool(False),
+                                   applyHitQuality = cms.bool(True),
+                                   corFile = cms.string(""),
+)
+
+trackrefitbs = cms.EDProducer('ResidualGlobalCorrectionMakerG4e',
+                                   src = cms.InputTag("tracksfrommuons"),
+                                   fitFromGenParms = cms.bool(False),
+                                   fillTrackTree = cms.bool(False),
+                                   fillGrads = cms.bool(False),
+                                   fillRunTree = cms.bool(False),
+                                   doGen = cms.bool(False),
+                                   doSim = cms.bool(False),
+                                   doMuons = cms.bool(False),
+                                   doMuonAssoc = cms.bool(True),
+                                   bsConstraint = cms.bool(True),
+                                   applyHitQuality = cms.bool(True),
+                                   corFile = cms.string(""),
+)
+
+mergedGlobalIdxs = cms.EDProducer("GlobalIdxProducer",
+                                  src0 = cms.InputTag("trackrefit", "globalIdxs"),
+                                  src1 = cms.InputTag("trackrefitbs", "globalIdxs")
+)
+
 muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("linkedObjects","muons"),
     cut = cms.string(""), #we should not filter on cross linked collections
@@ -139,8 +183,8 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         highPurity = Var("?track.isNonnull?innerTrack().quality('highPurity'):0", bool, doc = "inner track is high purity"),
         jetIdx = Var("?hasUserCand('jet')?userCand('jet').key():-1", int, doc="index of the associated jet (-1 if none)"),
         tkRelIso = Var("isolationR03().sumPt/tunePMuonBestTrack().pt",float,doc="Tracker-based relative isolation dR=0.3 for highPt, trkIso/tunePpt",precision=6),
-        miniPFRelIso_chg = Var("userFloat('miniIsoChg')/pt",float,doc="mini PF relative isolation, charged component"),
-        miniPFRelIso_all = Var("userFloat('miniIsoAll')/pt",float,doc="mini PF relative isolation, total (with scaled rho*EA PU corrections)"),
+        miniPFRelIso_chg = Var("?hasUserFloat('miniIsoChg')?userFloat('miniIsoChg')/pt:-1",float,doc="mini PF relative isolation, charged component"),
+        miniPFRelIso_all = Var("?hasUserFloat('miniIsoAll') ? userFloat('miniIsoAll')/pt : -1",float,doc="mini PF relative isolation, total (with scaled rho*EA PU corrections)"),
         pfRelIso03_chg = Var("pfIsolationR03().sumChargedHadronPt/pt",float,doc="PF relative isolation dR=0.3, charged component"),
         pfRelIso03_all = Var("(pfIsolationR03().sumChargedHadronPt + max(pfIsolationR03().sumNeutralHadronEt + pfIsolationR03().sumPhotonEt - pfIsolationR03().sumPUPt/2,0.0))/pt",float,doc="PF relative isolation dR=0.3, total (deltaBeta corrections)"),
         pfRelIso04_all = Var("(pfIsolationR04().sumChargedHadronPt + max(pfIsolationR04().sumNeutralHadronEt + pfIsolationR04().sumPhotonEt - pfIsolationR04().sumPUPt/2,0.0))/pt",float,doc="PF relative isolation dR=0.4, total (deltaBeta corrections)"),
@@ -169,17 +213,52 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         triggerIdLoose = Var("passed('TriggerIdLoose')",bool,doc="TriggerIdLoose ID"), 
         inTimeMuon = Var("passed('InTimeMuon')",bool,doc="inTimeMuon ID"),
         jetNDauCharged = Var("?userCand('jetForLepJetVar').isNonnull()?userFloat('jetNDauChargedMVASel'):0", "uint8", doc="number of charged daughters of the closest jet"),
+        standalonePt = Var("? standAloneMuon().isNonnull() ? standAloneMuon().pt() : -1", float, doc = "pt of the standalone muon", precision=14),
+        standaloneEta = Var("? standAloneMuon().isNonnull() ? standAloneMuon().eta() : -99", float, doc = "eta of the standalone muon", precision=14),
+        standalonePhi = Var("? standAloneMuon().isNonnull() ? standAloneMuon().phi() : -99", float, doc = "phi of the standalone muon", precision=14),
+        standaloneCharge = Var("? standAloneMuon().isNonnull() ? standAloneMuon().charge() : -99", float, doc = "phi of the standalone muon", precision=14),
+        innerTrackAlgo = Var('? innerTrack().isNonnull() ? innerTrack().algo() : -99', 'int', precision=-1, doc='Track algo enum, check DataFormats/TrackReco/interface/TrackBase.h for details.'),
+        innerTrackOriginalAlgo = Var('? innerTrack().isNonnull() ? innerTrack().originalAlgo() : -99', 'int', precision=-1, doc='Track original algo enum'),
         ),
     externalVariables = cms.PSet(
         mvaTTH = ExtVar(cms.InputTag("muonMVATTH"),float, doc="TTH MVA lepton ID score",precision=14),
         mvaLowPt = ExtVar(cms.InputTag("muonMVALowPt"),float, doc="Low pt muon ID score",precision=14),
         fsrPhotonIdx = ExtVar(cms.InputTag("muonFSRassociation:fsrIndex"),int, doc="Index of the associated FSR photon"),
+        cvhPt = ExtVar(cms.InputTag("trackrefit:corPt"), float, doc="Refitted track pt", precision=-1),
+        cvhEta = ExtVar(cms.InputTag("trackrefit:corEta"), float, doc="Refitted track eta", precision=12),
+        cvhPhi = ExtVar(cms.InputTag("trackrefit:corPhi"), float, doc="Refitted track phi", precision=12),
+        cvhCharge = ExtVar(cms.InputTag("trackrefit:corCharge"), int, doc="Refitted track charge"),
+        cvhEdmval = ExtVar(cms.InputTag("trackrefit:edmval"), float, doc="Refitted estimated distance to minimum", precision=10),
+        cvhbsPt = ExtVar(cms.InputTag("trackrefitbs:corPt"), float, doc="Refitted track pt (with bs constraint)", precision=-1),
+        cvhbsEta = ExtVar(cms.InputTag("trackrefitbs:corEta"), float, doc="Refitted track eta (with bs constraint)", precision=12),
+        cvhbsPhi = ExtVar(cms.InputTag("trackrefitbs:corPhi"), float, doc="Refitted track phi (with bs constraint)", precision=12),
+        cvhbsCharge = ExtVar(cms.InputTag("trackrefitbs:corCharge"), int, doc="Refitted track charge (with bs constraint)"),
+        cvhbsEdmval = ExtVar(cms.InputTag("trackrefitbs:edmval"), float, doc="Refitted estimated distance to minimum (with bs constraint)", precision=10),
     ),
 )
 
+muonExternalVecVarsTable = cms.EDProducer("FlattenedCandValueMapVectorTableProducer",
+    name = cms.string(muonTable.name.value()+"_cvh"),
+    src = muonTable.src,
+    cut = muonTable.cut,
+    doc = muonTable.doc,
+    variables = cms.PSet(
+        # can you declare a max number of bits here?  technically for the moment this needs 16 bits, but might eventually need 17 or 18
+        mergedGlobalIdxs = ExtVar(cms.InputTag("mergedGlobalIdxs"), "std::vector<int>", doc="Indices for correction parameters"),
+        # optimal precision tbd, but presumably can work the same way as for scalar floats
+        JacRef = ExtVar(cms.InputTag("trackrefit:jacRef"), "std::vector<float>", doc="jacobian for corrections", precision = 12),
+        MomCov = ExtVar(cms.InputTag("trackrefit:momCov"), "std::vector<float>", doc="covariance matrix for qop, lambda, phi", precision = 12),
+        # optimal precision tbd, but presumably can work the same way as for scalar floats
+        bsJacRef = ExtVar(cms.InputTag("trackrefitbs:jacRef"), "std::vector<float>", doc="Jacobian for corrections (with bs constraint)", precision = 12),
+        bsMomCov = ExtVar(cms.InputTag("trackrefitbs:momCov"), "std::vector<float>", doc="covariance matrix for qop, lambda, phi (with bs constraint)", precision = 12),
+    )
+)
 
-for modifier in  run2_miniAOD_80XLegacy, run2_nanoAOD_94X2016, run2_nanoAOD_94XMiniAODv1, run2_nanoAOD_94XMiniAODv2:
+
+for modifier in  run2_miniAOD_80XLegacy, run2_nanoAOD_94X2016, run2_nanoAOD_94XMiniAODv1, run2_nanoAOD_94XMiniAODv2, run2_nanoAOD_LowPU:
     modifier.toModify(muonTable.variables, puppiIsoId = None, softMva = None)
+
+run2_nanoAOD_LowPU.toModify(muonTable, externalVariables = cms.PSet())
 
 run2_nanoAOD_102Xv1.toModify(muonTable.variables, puppiIsoId = None)
 
@@ -208,5 +287,7 @@ muonMCTable = cms.EDProducer("CandMCMatchTableProducer",
 
 muonSequence = cms.Sequence(slimmedMuonsUpdated+isoForMu + ptRatioRelForMu + slimmedMuonsWithUserData + finalMuons + finalLooseMuons )
 muonMC = cms.Sequence(muonsMCMatchForTable + muonMCTable)
-muonTables = cms.Sequence(muonFSRphotons + muonFSRassociation + muonMVATTH + muonMVALowPt + muonTable + fsrTable)
+muonTables = cms.Sequence(muonFSRphotons + muonFSRassociation + muonMVATTH + muonMVALowPt + geopro + tracksfrommuons + trackrefit + trackrefitbs + mergedGlobalIdxs + muonTable + muonExternalVecVarsTable + fsrTable)
+
+run2_nanoAOD_LowPU.toReplaceWith(muonTables, muonTables.copyAndExclude([geopro, tracksfrommuons, trackrefit, trackrefitbs, mergedGlobalIdxs, muonExternalVecVarsTable]))
 

@@ -667,6 +667,10 @@
   <class name="edm::Association<std::vector<pat::GenericParticle>>" />
   <class name="edm::Wrapper<edm::Association<std::vector<pat::GenericParticle>> >" />
 
+  <class name="edm::RefProd<vector<pat::Muon> >" />
+  <class name="edm::Association<std::vector<pat::Muon>>" />
+  <class name="edm::Wrapper<edm::Association<std::vector<pat::Muon>>>" />
+
   </selection>
  <exclusion>
  </exclusion>

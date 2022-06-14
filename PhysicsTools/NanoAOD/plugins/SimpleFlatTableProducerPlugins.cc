@@ -3,6 +3,9 @@
 #include "DataFormats/Candidate/interface/Candidate.h"
 typedef SimpleFlatTableProducer<reco::Candidate> SimpleCandidateFlatTableProducer;
 
+#include "DataFormats/TrackReco/interface/Track.h"
+typedef SimpleFlatTableProducer<reco::Track> SimpleTrackFlatTableProducer;
+
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 typedef EventSingletonSimpleFlatTableProducer<GenEventInfoProduct> SimpleGenEventFlatTableProducer;
 
@@ -21,6 +24,7 @@ typedef EventSingletonSimpleFlatTableProducer<math::XYZPointF> SimpleXYZPointFla
 
 #include "FWCore/Framework/interface/MakerMacros.h"
 DEFINE_FWK_MODULE(SimpleCandidateFlatTableProducer);
+DEFINE_FWK_MODULE(SimpleTrackFlatTableProducer);
 DEFINE_FWK_MODULE(SimpleGenEventFlatTableProducer);
 DEFINE_FWK_MODULE(SimpleHTXSFlatTableProducer);
 DEFINE_FWK_MODULE(SimpleProtonTrackFlatTableProducer);
