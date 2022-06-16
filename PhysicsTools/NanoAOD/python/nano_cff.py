@@ -203,6 +203,13 @@ def nanoAOD_addDeepMET(process, addDeepMETProducer, ResponseTune_Graph):
         process.deepMETsResponseTune = process.deepMETProducer.clone()
         #process.deepMETsResponseTune.graph_path = 'RecoMET/METPUSubtraction/data/deepmet/deepmet_resp_v1_2018.pb'
         process.deepMETsResponseTune.graph_path = ResponseTune_Graph.value()
+        # modify the graph for the low PU era
+        run2_nanoAOD_LowPU.toModify(process.deepMETsResolutionTune, graph_path='PhysicsTools/NanoAOD/data/deepmetmodel/deepmet_lowPU.pb')
+        run2_nanoAOD_LowPU.toModify(process.deepMETsResponseTune, graph_path='PhysicsTools/NanoAOD/data/deepmetmodel/deepmet_lowPU_Resp.pb')
+        # no leptons in the training. so remove leptons from the dnn input
+        run2_nanoAOD_LowPU.toModify(process.deepMETsResolutionTune, ignore_leptons=cms.bool(True))
+        run2_nanoAOD_LowPU.toModify(process.deepMETsResponseTune, ignore_leptons=cms.bool(True))
+
     process.metTables += process.deepMetTables
     return process
 
@@ -223,13 +230,7 @@ def nanoAOD_recalibrateMETs(process,isData):
         process = nanoAOD_addDeepMET(process,
                                      addDeepMETProducer=nanoAOD_DeepMET_switch.nanoAOD_produceDeepMET_switch,
                                      ResponseTune_Graph=nanoAOD_DeepMET_switch.ResponseTune_Graph)
-        # modify the graph for the low PU era
-        run2_nanoAOD_LowPU.toModify(process.deepMETsResolutionTune, graph_path='PhysicsTools/NanoAOD/data/deepmetmodel/deepmet_lowPU.pb')
-        run2_nanoAOD_LowPU.toModify(process.deepMETsResponseTune, graph_path='PhysicsTools/NanoAOD/data/deepmetmodel/deepmet_lowPU_Resp.pb')
-        # no leptons in the training. so remove leptons from the dnn input
-        run2_nanoAOD_LowPU.toModify(process.deepMETsResolutionTune, ignore_leptons=cms.bool(True))
-        run2_nanoAOD_LowPU.toModify(process.deepMETsResponseTune, ignore_leptons=cms.bool(True))
-
+        
     # if included in Nano, and not computed in the fly, then it should be extracted from minAOD
     extractDeepMETs = nanoAOD_DeepMET_switch.nanoAOD_addDeepMET_switch and not nanoAOD_DeepMET_switch.nanoAOD_produceDeepMET_switch
 
@@ -427,9 +428,10 @@ def nanoAOD_customizeCommon(process):
         nanoAOD_addBoostedTauIds_switch = cms.untracked.bool(False)
     )
     run2_miniAOD_80XLegacy.toModify(addTauIds_switch, nanoAOD_addTauIds_switch = cms.untracked.bool(False))
-    ((run2_miniAOD_devel | run2_tau_ul_2016 | run2_tau_ul_2018) & \
+    ((run2_nanoAOD_106Xv2 | run2_miniAOD_devel | run2_tau_ul_2016 | run2_tau_ul_2018) & \
     (~(run2_nanoAOD_94X2016 | run2_nanoAOD_94XMiniAODv1 | run2_nanoAOD_94XMiniAODv2 | run2_nanoAOD_102Xv1 | run2_nanoAOD_106Xv1 | run2_nanoAOD_LowPU))).toModify(addTauIds_switch,
-                                                                                                                                           nanoAOD_addTauIds_switch = cms.untracked.bool(False))
+                                                                                                                                            nanoAOD_addTauIds_switch = False, nanoAOD_addBoostedTauIds_switch = True)
+
     if addTauIds_switch.nanoAOD_addTauIds_switch:
         process = nanoAOD_addTauIds(process)
     if addTauIds_switch.nanoAOD_addBoostedTauIds_switch:

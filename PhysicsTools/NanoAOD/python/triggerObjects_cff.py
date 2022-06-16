@@ -262,10 +262,6 @@ run2_nanoAOD_LowPU.toModify(
     selections = selections_lowPU
 )
 
-
-from PhysicsTools.PatUtils.L1ECALPrefiringWeightProducer_cff import prefiringweight
-run2_HLTconditions_2016.toModify(prefiringweight, DataEra = cms.string("2016BtoH"))
-
 l1PreFiringEventWeightTable = cms.EDProducer("GlobalVariablesTableProducer",
     name = cms.string("L1PreFiringWeight"),
     variables = cms.PSet(
