@@ -245,9 +245,7 @@ void NanoAODOutputModule::writeLuminosityBlock(edm::LuminosityBlockForOutput con
   jr->reportLumiSection(m_jrToken, iLumi.id().run(), iLumi.id().value());
 
   m_commonLumiBranches.fill(iLumi.id());
-
-  for (auto& t : m_lumiTables)
-    t.fill(iLumi, *m_lumiTree);
+  for (auto & t : m_lumiTables) t.fill(iLumi,*m_lumiTree);
 
   m_lumiTree->Fill();
 
@@ -298,14 +296,13 @@ void NanoAODOutputModule::openFile(edm::FileBlock const&) {
                                    std::vector<std::string>());
 
   if (m_compressionAlgorithm == std::string("ZLIB")) {
-    m_file->SetCompressionAlgorithm(ROOT::kZLIB);
-  } else if (m_compressionAlgorithm == std::string("LZMA")) {
-    m_file->SetCompressionAlgorithm(ROOT::kLZMA);
-  } else {
-    throw cms::Exception("Configuration")
-        << "NanoAODOutputModule configured with unknown compression algorithm '" << m_compressionAlgorithm << "'\n"
-        << "Allowed compression algorithms are ZLIB and LZMA\n";
-  }
+      m_file->SetCompressionAlgorithm(ROOT::kZLIB);
+    } else if (m_compressionAlgorithm == std::string("LZMA")) {
+      m_file->SetCompressionAlgorithm(ROOT::kLZMA);
+    } else {
+      throw cms::Exception("Configuration") << "NanoAODOutputModule configured with unknown compression algorithm '" << m_compressionAlgorithm << "'\n"
+                                           << "Allowed compression algorithms are ZLIB and LZMA\n";
+    }
   /* Setup file structure here */
   m_tables.clear();
   m_tableTokens.clear();
