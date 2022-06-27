@@ -467,10 +467,6 @@ def nanoGenWmassCustomize(process):
     
     process.lheInfoTable.storeAllLHEInfo = True
 
-    process.massWeights = cms.EDProducer("LHEWeightProductProducer",
-        lheSourceLabels = cms.vstring("correctMassWeights"),
-    )
-
     process.genWeightsTable.weightgroups = ['scale', 'PDF', 'matrix element', 'unknown', 'parton shower']
     process.genWeightsTable.maxGroupsPerType = [-1, -1, -1, -1, 1]
 
