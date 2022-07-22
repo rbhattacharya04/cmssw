@@ -1712,6 +1712,9 @@ class ConfigBuilder(object):
         self.loadDefaultOrSpecifiedCFF(sequence,self.USERNANODefaultCFF)
         self.scheduleSequence(sequence.split('.')[-1],'nanoAOD_step')
 
+        if sequence in ["nanotpSequence", "nanotpSequenceMC"]:
+            self._options.customisation_file.append("PhysicsTools/NanoAOD/nanoTP_cff.customizeNANOTP")
+
     def prepare_EI(self, sequence = None):
         ''' Enrich the schedule with event interpretation '''
         from Configuration.StandardSequences.EventInterpretation import EventInterpretation
