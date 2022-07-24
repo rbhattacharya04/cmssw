@@ -26,27 +26,11 @@ nanoMetadata = cms.EDProducer("UniqueStringProducer",
 l1bits=cms.EDProducer("L1TriggerResultsConverter", src=cms.InputTag("gtStage2Digis"), legacyL1=cms.bool(False),
                       storeUnprefireableBit=cms.bool(True), src_ext=cms.InputTag("gtStage2Digis"))
 
-finalIsolatedTracks.finalLeptons = ["finalLooseMuons"]
-
-finalMuons.src = "slimmedMuonsUpdated"
-finalLooseMuons.src = "slimmedMuonsUpdated"
-
 # alternate producer needed to play nice with value maps (must be PATMuonSelector as opposed to PATMuonRefSelector since the extra linking step which would normally convert back is skipped) 
 linkedMuons = cms.EDFilter("PATMuonSelector",
     src = finalMuons.src,
     cut = finalMuons.cut,
 )
-
-muonTable.src = "linkedMuons"
-muonTable.variables = cms.PSet(muonTable.variables,
-        standaloneExtraIdx = Var('? standAloneMuon().isNonnull() ? standAloneMuon().extra().key() : -99', 'int', precision=-1, doc='Index of the innerTrack TrackExtra in the original collection'),
-        innerTrackExtraIdx = Var('? innerTrack().isNonnull() ? innerTrack().extra().key() : -99', 'int', precision=-1, doc='Index of the innerTrack TrackExtra in the original collection'),
-)
-muonTable.externalVariables = cms.PSet(
-        isStandAloneUpdatedAtVtx = ExtVar(cms.InputTag("mergedStandAloneMuons:muonUpdatedAtVtx"),bool, doc="is standalone muon track updated at vertex"),
-)
-
-muonSimpleSequence= cms.Sequence(slimmedMuonsUpdated+isoForMu + finalMuons + finalLooseMuons )
 
 nanotpSequence = cms.Sequence(
         nanoMetadata + 
@@ -69,22 +53,37 @@ nanotpSequenceMC = cms.Sequence(
         triggerObjectTables + l1bits
         )
 
-def customizeMuonPassThrough(process):
-	passStandalone = "(standAloneMuon().isNonnull() && standAloneMuon().pt() > 15)"
-	process.selectedPatMuons.cut = cms.string("||".join([passStandalone, process.selectedPatMuons.cut.value()]))
-	process.finalMuons.cut = cms.string("||".join([passStandalone, process.finalMuons.cut.value()]))
-	process.linkedMuons.cut = process.finalMuons.cut
-	return process
+def customizeNANOTP(process):
+    finalIsolatedTracks.finalLeptons = ["finalLooseMuons"]
+
+    finalMuons.src = "slimmedMuonsUpdated"
+    finalLooseMuons.src = "slimmedMuonsUpdated"
+
+    # disable rekeying of track extra references since this breaks matching between standalone muon tracks and muon objects
+    process.slimmedMuons.trackExtraAssocs = cms.VInputTag()
+
+    muonTable.src = "linkedMuons"
+    muonTable.variables = cms.PSet(muonTable.variables,
+            standaloneExtraIdx = Var('? standAloneMuon().isNonnull() ? standAloneMuon().extra().key() : -99', 'int', precision=-1, doc='Index of the innerTrack TrackExtra in the original collection'),
+            innerTrackExtraIdx = Var('? innerTrack().isNonnull() ? innerTrack().extra().key() : -99', 'int', precision=-1, doc='Index of the innerTrack TrackExtra in the original collection'),
+    )
+    muonTable.externalVariables = cms.PSet(
+            isStandAloneUpdatedAtVtx = ExtVar(cms.InputTag("mergedStandAloneMuons:muonUpdatedAtVtx"),bool, doc="is standalone muon track updated at vertex"),
+    )
+
+    passStandalone = "(standAloneMuon().isNonnull() && standAloneMuon().pt() > 15)"
+    process.selectedPatMuons.cut = cms.string("||".join([passStandalone, process.selectedPatMuons.cut.value()]))
+    process.finalMuons.cut = cms.string("||".join([passStandalone, process.finalMuons.cut.value()]))
+    process.linkedMuons.cut = process.finalMuons.cut
+    return process
 
 def nanoGenWmassCustomize(process):
     pdgSelection="?(abs(pdgId) == 11|| abs(pdgId)==13 || abs(pdgId)==15 ||abs(pdgId)== 12 || abs(pdgId)== 14 || abs(pdgId)== 16|| abs(pdgId)== 6|| abs(pdgId)== 24|| pdgId== 23|| pdgId== 25)"
     # Keep precision same as default RECO for selected particles                                                                                       
-    ptPrecision="{}?{}:{}".format(pdgSelection, CandVars.pt.precision.value(),genParticleTable.variables.pt.precision.value())
+    ptPrecision="{}?{}:{}".format(pdgSelection, 23,genParticleTable.variables.pt.precision.value())
     process.genParticleTable.variables.pt.precision=cms.string(ptPrecision)
     phiPrecision="{} ? {} : {}".format(pdgSelection, CandVars.phi.precision.value(), genParticleTable.variables.phi.precision.value())
     process.genParticleTable.variables.phi.precision=cms.string(phiPrecision)
     etaPrecision="{} ? {} : {}".format(pdgSelection, CandVars.eta.precision.value(), genParticleTable.variables.eta.precision.value())
     process.genParticleTable.variables.eta.precision=cms.string(etaPrecision)
-    process.genParticleTable.variables.pt.precision=cms.string(etaPrecision)
-
     return process
