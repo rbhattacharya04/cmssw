@@ -282,6 +282,8 @@ run2_nanoAOD_94X2016.toModify(slimmedElectronsWithUserData.userFloats,
                               
 )
 
+
+
 run2_nanoAOD_94X2016.toModify(slimmedElectronsWithUserData.userIntFromBools,
     # MVAs and HEEP are already pre-computed. Cut-based too (except V2), but we re-add it for consistency with the nested bitmap
     cutbasedID_Sum16_veto = cms.InputTag("egmGsfElectronIDs:cutBasedElectronID-Summer16-80X-V1-veto"),
@@ -311,6 +313,10 @@ run2_nanoAOD_LowPU.toModify(slimmedElectronsWithUserData.userFloats,
     ecalTrkEnergyPostCorrNew    = cms.InputTag("calibratedPatElectronsLowPU","ecalTrkEnergyPostCorr"),
     ecalEnergyPreCorrNew        = cms.InputTag("calibratedPatElectronsLowPU","ecalEnergyPreCorr"),
     ecalEnergyPostCorrNew       = cms.InputTag("calibratedPatElectronsLowPU","ecalEnergyPostCorr"),
+    energyScaleUpNew            = cms.InputTag("calibratedPatElectronsLowPU","energyScaleUp"),
+    energyScaleDownNew          = cms.InputTag("calibratedPatElectronsLowPU","energyScaleDown"),
+    energySigmaUpNew            = cms.InputTag("calibratedPatElectronsLowPU","energySigmaUp"),
+    energySigmaDownNew          = cms.InputTag("calibratedPatElectronsLowPU","energySigmaDown"),
 )
 
 
@@ -621,6 +627,6 @@ for modifier in run2_nanoAOD_94XMiniAODv1, run2_nanoAOD_94XMiniAODv2,run2_nanoAO
 
 _withTo106XAndUpdateAndLowPUScale_sequence = _withTo106XAndUpdate_sequence.copy()
 _withTo106XAndUpdateAndLowPUScale_sequence.replace(slimmedElectronsWithUserData, calibratedPatElectronsLowPU + slimmedElectronsWithUserData)
-run2_nanoAOD_LowPU.toReplaceWith(electronSequence, _withTo106XAndUpdateAnd80XLegacyScale_sequence)
+run2_nanoAOD_LowPU.toReplaceWith(electronSequence, _withTo106XAndUpdateAndLowPUScale_sequence)
 
 electronSequence.replace(slimmedElectronsWithUserData,calibratedPatElectronsNano + slimmedElectronsWithUserData)
