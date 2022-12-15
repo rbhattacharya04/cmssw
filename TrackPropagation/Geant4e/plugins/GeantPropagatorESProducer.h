@@ -24,6 +24,7 @@ public:
 private:
   edm::ParameterSet pset_;
   double plimit_;
+  std::string fieldlabel_;
 };
 
 #endif
