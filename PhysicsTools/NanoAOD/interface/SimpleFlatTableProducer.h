@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <iostream>
 
 template<typename T, typename TProd>
 class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
@@ -89,10 +90,13 @@ class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
                     void fill(std::vector<const T *> selobjs, nanoaod::FlatTable & out) const override {
                         std::vector<ValType> vals(selobjs.size());
                         for (unsigned int i = 0, n = vals.size(); i < n; ++i) {
-                            if(this->precision_ == -2){
-                            vals[i] = MiniFloatConverter::reduceMantissaToNbitsRounding(func_(*selobjs[i]),precisionFunc_(*selobjs[i]));
+                            ValType val =  func_(*selobjs[i]);
+                            if(this->precision_ == -2) {
+                                auto prec =  precisionFunc_(*selobjs[i]);
+                                vals[i] = prec > 0 ? MiniFloatConverter::reduceMantissaToNbitsRounding(val, prec) : val;
                             }
-                            else vals[i] = func_(*selobjs[i]);
+                            else 
+                                vals[i] = val;
                         }
                         out.template addColumn<ValType>(this->name_, vals, this->doc_, this->type_,this->precision_);
                     }
