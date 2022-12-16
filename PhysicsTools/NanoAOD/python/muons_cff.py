@@ -128,36 +128,48 @@ tracksfrommuons = cms.EDProducer("TrackProducerFromPatMuons",
 trackrefit = cms.EDProducer('ResidualGlobalCorrectionMakerG4e',
                                    src = cms.InputTag("tracksfrommuons"),
                                    fitFromGenParms = cms.bool(False),
+                                   fitFromSimParms = cms.bool(False),
                                    fillTrackTree = cms.bool(False),
                                    fillGrads = cms.bool(False),
+                                   fillJac = cms.bool(False),
                                    fillRunTree = cms.bool(False),
                                    doGen = cms.bool(False),
                                    doSim = cms.bool(False),
+                                   requireGen = cms.bool(False),
                                    doMuons = cms.bool(False),
                                    doMuonAssoc = cms.bool(True),
+                                   doTrigger = cms.bool(False),
+                                   doRes = cms.bool(False),
                                    bsConstraint = cms.bool(False),
                                    applyHitQuality = cms.bool(True),
-                                   corFile = cms.string(""),
+                                   useIdealGeometry = cms.bool(False),
+                                   corFiles = cms.vstring(),
 )
 
-trackrefitbs = cms.EDProducer('ResidualGlobalCorrectionMakerG4e',
+trackrefitideal = cms.EDProducer('ResidualGlobalCorrectionMakerG4e',
                                    src = cms.InputTag("tracksfrommuons"),
                                    fitFromGenParms = cms.bool(False),
+                                   fitFromSimParms = cms.bool(False),
                                    fillTrackTree = cms.bool(False),
                                    fillGrads = cms.bool(False),
+                                   fillJac = cms.bool(False),
                                    fillRunTree = cms.bool(False),
                                    doGen = cms.bool(False),
                                    doSim = cms.bool(False),
+                                   requireGen = cms.bool(False),
                                    doMuons = cms.bool(False),
                                    doMuonAssoc = cms.bool(True),
-                                   bsConstraint = cms.bool(True),
+                                   doTrigger = cms.bool(False),
+                                   doRes = cms.bool(False),
+                                   bsConstraint = cms.bool(False),
                                    applyHitQuality = cms.bool(True),
-                                   corFile = cms.string(""),
+                                   useIdealGeometry = cms.bool(True),
+                                   corFiles = cms.vstring(),
 )
 
 mergedGlobalIdxs = cms.EDProducer("GlobalIdxProducer",
                                   src0 = cms.InputTag("trackrefit", "globalIdxs"),
-                                  src1 = cms.InputTag("trackrefitbs", "globalIdxs")
+                                  src1 = cms.InputTag("trackrefitideal", "globalIdxs")
 )
 
 muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
@@ -229,36 +241,56 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         cvhPhi = ExtVar(cms.InputTag("trackrefit:corPhi"), float, doc="Refitted track phi", precision=12),
         cvhCharge = ExtVar(cms.InputTag("trackrefit:corCharge"), int, doc="Refitted track charge"),
         cvhEdmval = ExtVar(cms.InputTag("trackrefit:edmval"), float, doc="Refitted estimated distance to minimum", precision=10),
-        cvhbsPt = ExtVar(cms.InputTag("trackrefitbs:corPt"), float, doc="Refitted track pt (with bs constraint)", precision=-1),
-        cvhbsEta = ExtVar(cms.InputTag("trackrefitbs:corEta"), float, doc="Refitted track eta (with bs constraint)", precision=12),
-        cvhbsPhi = ExtVar(cms.InputTag("trackrefitbs:corPhi"), float, doc="Refitted track phi (with bs constraint)", precision=12),
-        cvhbsCharge = ExtVar(cms.InputTag("trackrefitbs:corCharge"), int, doc="Refitted track charge (with bs constraint)"),
-        cvhbsEdmval = ExtVar(cms.InputTag("trackrefitbs:edmval"), float, doc="Refitted estimated distance to minimum (with bs constraint)", precision=10),
+    ),
+)
+
+muonIdealTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+    src = muonTable.src,
+    cut = muonTable.cut,
+    name = muonTable.name,
+    singleton = cms.bool(False), # the number of entries is variable
+    extension = cms.bool(True),
+    variables = cms.PSet(),
+    externalVariables = cms.PSet(
+        cvhidealPt = ExtVar(cms.InputTag("trackrefitideal:corPt"), float, doc="Refitted track pt (with ideal geometry)", precision=-1),
+        cvhidealEta = ExtVar(cms.InputTag("trackrefitideal:corEta"), float, doc="Refitted track eta (with ideal geometry)", precision=12),
+        cvhidealPhi = ExtVar(cms.InputTag("trackrefitideal:corPhi"), float, doc="Refitted track phi (with ideal geometry)", precision=12),
+        cvhidealCharge = ExtVar(cms.InputTag("trackrefitideal:corCharge"), int, doc="Refitted track charge (with ideal geometry)"),
+        cvhidealEdmval = ExtVar(cms.InputTag("trackrefitideal:edmval"), float, doc="Refitted estimated distance to minimum (with ideal geometry)", precision=10),
     ),
 )
 
 muonExternalVecVarsTable = cms.EDProducer("FlattenedCandValueMapVectorTableProducer",
-    name = cms.string(muonTable.name.value()+"_cvh"),
+    name = cms.string(muonTable.name.value()),
     src = muonTable.src,
     cut = muonTable.cut,
     doc = muonTable.doc,
     variables = cms.PSet(
         # can you declare a max number of bits here?  technically for the moment this needs 16 bits, but might eventually need 17 or 18
-        mergedGlobalIdxs = ExtVar(cms.InputTag("mergedGlobalIdxs"), "std::vector<int>", doc="Indices for correction parameters"),
+        cvhmergedGlobalIdxs = ExtVar(cms.InputTag("trackrefit:globalIdxs"), "std::vector<int>", doc="Indices for correction parameters"),
         # optimal precision tbd, but presumably can work the same way as for scalar floats
-        JacRef = ExtVar(cms.InputTag("trackrefit:jacRef"), "std::vector<float>", doc="jacobian for corrections", precision = 12),
-        MomCov = ExtVar(cms.InputTag("trackrefit:momCov"), "std::vector<float>", doc="covariance matrix for qop, lambda, phi", precision = 12),
+        cvhJacRef = ExtVar(cms.InputTag("trackrefit:jacRef"), "std::vector<float>", doc="jacobian for corrections", precision = 12),
+        cvhMomCov = ExtVar(cms.InputTag("trackrefit:momCov"), "std::vector<float>", doc="covariance matrix for qop, lambda, phi", precision = 12),
+    )
+)
+
+muonIdealExternalVecVarsTable = cms.EDProducer("FlattenedCandValueMapVectorTableProducer",
+    name = cms.string(muonTable.name.value()),
+    src = muonTable.src,
+    cut = muonTable.cut,
+    doc = muonTable.doc,
+    variables = cms.PSet(
+        # can you declare a max number of bits here?  technically for the moment this needs 16 bits, but might eventually need 17 or 18
+        cvhmergedGlobalIdxs = ExtVar(cms.InputTag("mergedGlobalIdxs"), "std::vector<int>", doc="Indices for correction parameters"),
         # optimal precision tbd, but presumably can work the same way as for scalar floats
-        bsJacRef = ExtVar(cms.InputTag("trackrefitbs:jacRef"), "std::vector<float>", doc="Jacobian for corrections (with bs constraint)", precision = 12),
-        bsMomCov = ExtVar(cms.InputTag("trackrefitbs:momCov"), "std::vector<float>", doc="covariance matrix for qop, lambda, phi (with bs constraint)", precision = 12),
+        cvhidealJacRef = ExtVar(cms.InputTag("trackrefitideal:jacRef"), "std::vector<float>", doc="jacobian for corrections (with ideal geometry)", precision = 12),
+        cvhidealMomCov = ExtVar(cms.InputTag("trackrefitideal:momCov"), "std::vector<float>", doc="covariance matrix for qop, lambda, phi (with ideal geometry)", precision = 12),
     )
 )
 
 
 for modifier in  run2_miniAOD_80XLegacy, run2_nanoAOD_94X2016, run2_nanoAOD_94XMiniAODv1, run2_nanoAOD_94XMiniAODv2, run2_nanoAOD_LowPU:
     modifier.toModify(muonTable.variables, puppiIsoId = None, softMva = None)
-
-run2_nanoAOD_LowPU.toModify(muonTable, externalVariables = cms.PSet())
 
 run2_nanoAOD_102Xv1.toModify(muonTable.variables, puppiIsoId = None)
 
@@ -285,9 +317,13 @@ muonMCTable = cms.EDProducer("CandMCMatchTableProducer",
     docString = cms.string("MC matching to status==1 muons"),
 )
 
-muonSequence = cms.Sequence(slimmedMuonsUpdated+isoForMu + ptRatioRelForMu + slimmedMuonsWithUserData + finalMuons + finalLooseMuons )
-muonMC = cms.Sequence(muonsMCMatchForTable + muonMCTable)
-muonTables = cms.Sequence(muonFSRphotons + muonFSRassociation + muonMVATTH + muonMVALowPt + geopro + tracksfrommuons + trackrefit + trackrefitbs + mergedGlobalIdxs + muonTable + muonExternalVecVarsTable + fsrTable)
+muonSequence = cms.Sequence(slimmedMuonsUpdated+isoForMu + ptRatioRelForMu + slimmedMuonsWithUserData + finalMuons + finalLooseMuons)
+muonMC = cms.Sequence(trackrefitideal + mergedGlobalIdxs + muonsMCMatchForTable + muonMCTable + muonIdealTable + muonIdealExternalVecVarsTable)
+muonTables = cms.Sequence(muonFSRphotons + muonFSRassociation + muonMVATTH + muonMVALowPt + geopro + tracksfrommuons + trackrefit + muonTable + muonExternalVecVarsTable + fsrTable)
 
-run2_nanoAOD_LowPU.toReplaceWith(muonTables, muonTables.copyAndExclude([geopro, tracksfrommuons, trackrefit, trackrefitbs, mergedGlobalIdxs, muonExternalVecVarsTable]))
+# remove track refit stuff for low pu
+run2_nanoAOD_LowPU.toReplaceWith(muonTables, muonTables.copyAndExclude([geopro, tracksfrommuons, trackrefit, muonExternalVecVarsTable]))
+run2_nanoAOD_LowPU.toReplaceWith(muonMC, muonMC.copyAndExclude([trackrefitideal, mergedGlobalIdxs, muonIdealTable, muonIdealExternalVecVarsTable]))
+run2_nanoAOD_LowPU.toModify(muonTable, externalVariables = cms.PSet())
+
 
