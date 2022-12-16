@@ -81,8 +81,10 @@
 
 #include "SimDataFormats/Track/interface/SimTrack.h"
 
+#include "DataFormats/Common/interface/TriggerResults.h"
+#include "DataFormats/Provenance/interface/ParameterSetID.h"
 
-
+#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 
 // #include "../interface/OffsetMagneticField.h"
 // #include "../interface/ParmInfo.h"
@@ -122,19 +124,6 @@ typedef VectorXd GlobalParameterVector;
 typedef MatrixXd AlignmentJacobianMatrix;
 typedef MatrixXd TransportJacobianMatrix;
 typedef MatrixXd ELossJacobianMatrix;
-
-
-// struct ParmInfo {
-//   int parmtype;
-//   int subdet;
-//   int layer;
-//   float x;
-//   float y;
-//   float z;
-//   float eta;
-//   float phi;
-//   float rho;
-// };
 
 //
 // class declaration
@@ -183,83 +172,45 @@ protected:
   virtual void endStream() override;
 
   virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
-  //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
-  //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
-  //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
   GloballyPositioned<double> surfaceToDouble(const Surface &surface) const;
-  
-  Matrix<double, 5, 6> localTransportJacobian(const TrajectoryStateOnSurface& start,
-                                              const std::pair<TrajectoryStateOnSurface, double>& propresult,
-                                              bool doReverse = false) const;
-                                              
-  Matrix<double, 5, 6> localTransportJacobianAlt(const TrajectoryStateOnSurface& start,
-                                              const std::pair<TrajectoryStateOnSurface, double>& propresult,
-                                              bool doReverse = false) const;
-                                              
-  Matrix<double, 5, 6> curv2localTransportJacobian(const FreeTrajectoryState& start,
-                                              const std::pair<TrajectoryStateOnSurface, double>& propresult,
-                                              bool doReverse = false) const;
 
-  Matrix<double, 5, 6> curv2curvTransportJacobian(const FreeTrajectoryState& start,
-                                              const std::pair<TrajectoryStateOnSurface, double>& propresult,
-                                              bool doReverse = false) const;
-                                              
-  Matrix<double, 5, 6> curvtransportJacobian(const GlobalTrajectoryParameters& globalSource,
-                                                             const GlobalTrajectoryParameters& globalDest,
-                                                             const double& s,
-                                                             const GlobalVector& bfield) const;
-                                              
-  Matrix<double, 5, 1> bfieldJacobian(const GlobalTrajectoryParameters& globalSource,
-                                                             const GlobalTrajectoryParameters& globalDest,
-                                                             const double& s,
-                                                             const GlobalVector& bfield) const;
-         
-  Matrix<double, 5, 5> curv2localJacobianAlt(const TrajectoryStateOnSurface &state) const;
-  
-  Matrix<double, 5, 5> curv2localJacobianAlteloss(const TrajectoryStateOnSurface &state, double dEdx, double mass) const;
-  
+  GloballyPositioned<double> surfaceToDouble(const Surface &surface, const Basic3DVector<double> &gz) const;
+
+  void applyAlignment(GloballyPositioned<double> &surface, const DetId &detid) const;
+
+  Matrix<double, 6, 1> globalToLocal(const Matrix<double, 7, 1> &state, const GloballyPositioned<double> &surface) const;
+
+  Matrix<double, 7, 1> localToGlobal(const Matrix<double, 6, 1> &localstate, const GloballyPositioned<double> &surface) const;
+
   Matrix<double, 5, 5> curv2localJacobianAltelossD(const Matrix<double, 7, 1> &state, const MagneticField *field, const GloballyPositioned<double> &surface, double dEdx, double mass, double dBz = 0.) const;
   
-  Matrix<double, 6, 5> curv2cartJacobianAlt(const FreeTrajectoryState &state) const;
+  Matrix<double, 5, 5> curv2localhybridJacobianAltelossD(const Matrix<double, 7, 1> &state, const MagneticField *field, const GloballyPositioned<double> &surface, double dEdx, double mass, double dBz = 0.) const;
+
+  Matrix<double, 5, 11> curv2localJacobianAlignmentD(const Matrix<double, 7, 1> &state, const MagneticField *field, const GloballyPositioned<double> &surface, double dEdx, double mass, double dBz = 0.) const;
+
   Matrix<double, 6, 5> curv2cartJacobianAltD(const Matrix<double, 7, 1> &state) const;
-                                                             
-  Matrix<double, 5, 6> hybrid2curvJacobian(const FreeTrajectoryState &state) const;
   
   Matrix<double, 5, 6> hybrid2curvJacobianD(const Matrix<double, 7, 1> &state, const MagneticField *field, double dBz = 0.) const;
-         
-  Matrix<double, 5, 7> hybrid2localTransportJacobian(const FreeTrajectoryState& start,
-                                              const std::pair<TrajectoryStateOnSurface, double>& propresult) const;
-  
-  Matrix<double, 5, 7> hybrid2curvTransportJacobian(const FreeTrajectoryState& start,
-                                              const std::pair<TrajectoryStateOnSurface, double>& propresult) const;
-                                              
-  Matrix<double, 5, 7> hybrid2curvTransportJacobian(const GlobalTrajectoryParameters& globalSource,
-                                                             const GlobalTrajectoryParameters& globalDest,
-                                                             const double& s,
-                                                             const GlobalVector& bfield) const;
-                                                             
-  Matrix<double, 5, 7> hybrid2curvTransportJacobianVar(const GlobalTrajectoryParameters& globalSource,
-                                                             const GlobalTrajectoryParameters& globalDest,
-                                                             const double& s,
-                                                             const GlobalVector& bfield) const;
-                                                             
-  AlgebraicVector5 localMSConvolution(const TrajectoryStateOnSurface& tsos, const MaterialEffectsUpdator& updator) const;
-                                                             
-  Matrix<double, 5, 6> materialEffectsJacobian(const TrajectoryStateOnSurface& tsos, const MaterialEffectsUpdator& updator);
-  
-  Matrix<double, 5, 6> materialEffectsJacobianVar(const TrajectoryStateOnSurface& tsos, const MaterialEffectsUpdator& updator);
-  
-  std::array<Matrix<double, 5, 5>, 5> processNoiseJacobians(const TrajectoryStateOnSurface& tsos, const MaterialEffectsUpdator& updator) const;
-  
-  Matrix<double, 2, 1> localPositionConvolution(const TrajectoryStateOnSurface& tsos, const Matrix<double, 5, 5> &curvcov) const;
-  
+
+  Matrix<double, 7, 1> pca2cart(const Matrix<double, 5, 1> &statepca, const reco::BeamSpot &bs) const;
+
+  Matrix<double, 5, 1> cart2pca(const Matrix<double, 7, 1> &state, const reco::BeamSpot &bs) const;
+
+  Matrix<double, 5, 5> pca2curvJacobianD(const Matrix<double, 7, 1> &state, const MagneticField *field, const reco::BeamSpot &bs, double dBz = 0.) const;
+
+  Matrix<double, 6, 5> pca2cartJacobianD(const Matrix<double, 7, 1> &state, const reco::BeamSpot &bs) const;
+
+  std::array<Matrix<double, 7, 1>, 2> twoTrackPca2cart(const Matrix<double, 10, 1> &statepca) const;
+
+  Matrix<double, 10, 1> twoTrackCart2pca(const Matrix<double, 7, 1> &state0, const Matrix<double, 7, 1> &state1) const;
+
+  Matrix<double, 10, 10> twoTrackPca2curvJacobianD(const Matrix<double, 7, 1> &state0, const Matrix<double, 7, 1> &state1, const MagneticField *field, double dBz0 = 0., double dBz1 = 0.) const;
+
+
+//   Matrix<double, 10, 1> twoTrackCart2pcaJacobianD(const Matrix<double, 7, 1> &state0, const Matrix<double, 7, 1> &state 1, const MagneticField *field, const reco::BeamSpot &bs, double dBz0 = 0., double dBz1 = 0.);
+
   Matrix<double, 2, 1> localPositionConvolutionD(const Matrix<double, 7, 1>& state, const Matrix<double, 5, 5> &curvcov, const GloballyPositioned<double> &surface) const;
-
-  template <unsigned int D>
-  AlgebraicVector5 lupdate(const TrajectoryStateOnSurface& tsos, const TrackingRecHit& aRecHit);
-
-  AlgebraicVector5 update(const TrajectoryStateOnSurface& tsos, const TrackingRecHit& aRecHit);
 
   template <typename T>
   void init_twice_active_var(T &ad, const unsigned int d_num, const unsigned int idx) const;
@@ -267,36 +218,26 @@ protected:
   template <typename T>
   void init_twice_active_null(T &ad, const unsigned int d_num) const;
   
-//   Matrix<double, 5, 3> vertexToCurvilinearJacobian(const FreeTrajectoryState &state) const;
-  Matrix<double, 6, 6> cartesianToCartesianJacobian(const FreeTrajectoryState &state) const;
-  
-  Matrix<double, 1, 6> massJacobianAlt(const FreeTrajectoryState &state0, const FreeTrajectoryState &state1, double dmass) const;
   
   Matrix<double, 1, 6> massJacobianAltD(const Matrix<double, 7, 1> &state0, const Matrix<double, 7, 1> &state1, double dmass) const;
   
-  Matrix<double, 1, 6> massJacobianInvSq(const FreeTrajectoryState &state0, const FreeTrajectoryState &state1, double dmass) const;
-  
-  Matrix<double, 1, 6> mrJacobian(const FreeTrajectoryState &state0, const FreeTrajectoryState &state1, double dmass) const;
-  
-  Matrix<double, 5, 1> elossAdHocJacobian(const FreeTrajectoryState &state, double mass) const;
-  Matrix<double, 5, 1> elossAdHocJacobianD(const Matrix<double, 7, 1> &state, double mass) const;
-  
+  Matrix<double, 6, 6> massHessianAltD(const Matrix<double, 7, 1> &state0, const Matrix<double, 7, 1> &state1, double dmass) const;
 
-//   Point3DBase<double, GlobalTag> toGlobal(const Surface &surface, const Point3DBase<double, LocalTag> &lp) const;
-//   
-//   Vector3DBase<double, GlobalTag> toGlobal(const Surface &surface, const Vector3DBase<double, LocalTag> &lv) const;
-//   
-//   Point3DBase<double, LocalTag> toLocal(const Surface &surface, const Point3DBase<double, GlobalTag> &gp) const;
-//   
-//   Vector3DBase<double, LocalTag> toLocal(const Surface &surface, const Vector3DBase<double, GlobalTag> &gv) const;
+  Matrix<double, 1, 6> massinvsqJacobianAltD(const Matrix<double, 7, 1> &state0, const Matrix<double, 7, 1> &state1, double dmass) const;
   
+  Matrix<double, 6, 6> massinvsqHessianAltD(const Matrix<double, 7, 1> &state0, const Matrix<double, 7, 1> &state1, double dmass) const;  
+
   // ----------member data ---------------------------
   edm::EDGetTokenT<std::vector<Trajectory>> inputTraj_;
 //   edm::EDGetTokenT<std::vector<reco::GenParticle>> GenParticlesToken_;
   edm::EDGetTokenT<edm::View<reco::Candidate>> GenParticlesToken_;
+  edm::EDGetTokenT<math::XYZPointF> genXyz0Token_;
   edm::EDGetTokenT<GenEventInfoProduct> genEventInfoToken_;
   edm::EDGetTokenT<std::vector<int>> genParticlesBarcodeToken_;
 //   edm::EDGetTokenT<TrajTrackAssociationCollection> inputTrack_;
+  
+  edm::EDGetTokenT<std::vector<PileupSummaryInfo>> pileupSummaryToken_;
+  
   edm::EDGetTokenT<reco::TrackCollection> inputTrack_;
   edm::EDGetTokenT<reco::TrackCollection> inputTrackOrig_;
   edm::EDGetTokenT<std::vector<int> > inputIndices_;
@@ -312,7 +253,15 @@ protected:
   edm::EDGetTokenT<edm::Association<std::vector<pat::Muon>>> inputMuonAssoc_;
   bool doMuonAssoc_;
   
-  std::string corFile_;
+  edm::EDGetTokenT<edm::TriggerResults> inputTriggerResults_;
+  bool doTrigger_;
+  edm::ParameterSetID triggerNamesId_;
+  std::vector<std::string> triggers_;
+  std::vector<std::size_t> triggerIdxs_;
+  std::vector<int> triggerDecisions_;
+  
+  
+  std::vector<std::string> corFiles_;
   
 //   SiStripClusterInfo siStripClusterInfo_;
 
@@ -396,6 +345,8 @@ protected:
   std::vector<int> clusterSizeX;
   std::vector<int> clusterSizeY;
   std::vector<int> clusterCharge;
+
+  std::vector<int> stripsToEdge;
   
   std::vector<int> clusterChargeBin;
   std::vector<int> clusterOnEdge;
@@ -406,6 +357,20 @@ protected:
   std::vector<float> dxreccluster;
   std::vector<float> dyreccluster;
   
+  std::vector<float> simlocalqop;
+  std::vector<float> simlocaldxdz;
+  std::vector<float> simlocaldydz;
+  std::vector<float> simlocalx;
+  std::vector<float> simlocaly;
+  
+  std::vector<float> simlocalqopprop;
+  std::vector<float> simlocaldxdzprop;
+  std::vector<float> simlocaldydzprop;
+  std::vector<float> simlocalxprop;
+  std::vector<float> simlocalyprop;
+
+  std::vector<float> landauDelta;
+  std::vector<float> landauW;
   
   std::vector<float> localqop;
   std::vector<float> localdxdz;
@@ -413,13 +378,40 @@ protected:
   std::vector<float> localx;
   std::vector<float> localy;
   
+  std::vector<float> localqoperr;
+  std::vector<float> localdxdzerr;
+  std::vector<float> localdydzerr;
+  std::vector<float> localxerr;
+  std::vector<float> localyerr;
+  
+  std::vector<float> hitlocalx;
+  std::vector<float> hitlocaly;
+  
+  std::vector<float> localqop_iter;
+  std::vector<float> localdxdz_iter;
+  std::vector<float> localdydz_iter;
+  std::vector<float> localx_iter;
+  std::vector<float> localy_iter;
+
+  std::vector<float> dxrecgen_iter;
+  std::vector<float> dyrecgen_iter;
+  
+  std::vector<float> localqoperralt;
+
+  std::vector<float> localphi;
+  std::vector<float> hitphi;
+  
   std::map<std::pair<int, DetId>, unsigned int> detidparms;
   std::vector<std::pair<int, DetId>> detidparmsrev;
   std::map<DetId, std::array<int, 3>> detidlayermap;
   
   std::map<DetId, ReferenceCountingPointer<Plane>> surfacemap_;
   std::map<DetId, GloballyPositioned<double>> surfacemapD_;
-  std::vector<float> corparms_;
+  std::map<DetId, GloballyPositioned<double>> surfacemapIdealD_;
+  std::map<DetId, Eigen::Matrix<double, 2, 2>> rgluemap_;
+
+  std::vector<std::vector<double>> corparmsIncremental_;
+  std::vector<double> corparms_;
   
   unsigned int run;
   unsigned int lumi;
@@ -430,19 +422,26 @@ protected:
   std::unordered_map<std::pair<unsigned int, unsigned int>, double> hessaggsparse;
   
   bool fitFromGenParms_;
+  bool fitFromSimParms_;
   bool fillTrackTree_;
   bool fillGrads_;
+  bool fillJac_;
   bool fillRunTree_;
+  bool alignGlued_ = true;
   
   bool debugprintout_;
   
   bool doGen_;
   bool doSim_;
   bool doMuons_;
+  bool requireGen_;
   
   bool bsConstraint_;
   
   bool applyHitQuality_;
+  
+  bool doRes_ = false;
+  bool useIdealGeometry_ = false;
   
   float dxpxb1;
   float dypxb1;
@@ -481,6 +480,7 @@ protected:
   std::vector<float> deigy;
   
   float edmval;
+  float edmvalref;
   float deltachisqval;
   unsigned int niter;
   
@@ -489,52 +489,20 @@ protected:
 
   float genweight;
   
+  int Pileup_nPU = 0;
+  float Pileup_nTrueInt = 0.;
+
+  float genl3d = -99.;
+  
+  std::vector<float> gradchisqv;
+  
   TH2D *hetaphi = nullptr;
+
+  std::string outprefix;
   
 //   bool filledRunTree_;
   
 };
-
-template <unsigned int D>
-AlgebraicVector5 ResidualGlobalCorrectionMakerBase::lupdate(const TrajectoryStateOnSurface& tsos, const TrackingRecHit& aRecHit) {
-  typedef typename AlgebraicROOTObject<D, 5>::Matrix MatD5;
-  typedef typename AlgebraicROOTObject<5, D>::Matrix Mat5D;
-  typedef typename AlgebraicROOTObject<D, D>::SymMatrix SMatDD;
-  typedef typename AlgebraicROOTObject<D>::Vector VecD;
-  using ROOT::Math::SMatrixNoInit;
-
-  auto&& x = tsos.localParameters().vector();
-  auto&& C = tsos.localError().matrix();
-
-  // projection matrix (assume element of "H" to be just 0 or 1)
-  ProjectMatrix<double, 5, D> pf;
-
-  // Measurement matrix
-  VecD r, rMeas;
-  SMatDD V(SMatrixNoInit{}), VMeas(SMatrixNoInit{});
-
-  KfComponentsHolder holder;
-  holder.template setup<D>(&r, &V, &pf, &rMeas, &VMeas, x, C);
-  aRecHit.getKfComponents(holder);
-
-  r -= rMeas;
-
-  // and covariance matrix of residuals
-  SMatDD R = V + VMeas;
-  bool ok = invertPosDefMatrix(R);
-  if (!ok) {
-    return AlgebraicVector5();
-  }
-
-  // Compute Kalman gain matrix
-  AlgebraicMatrix55 M = AlgebraicMatrixID();
-  Mat5D K = C * pf.project(R);
-  pf.projectAndSubtractFrom(M, K);
-
-  // Compute local filtered state vector
-  AlgebraicVector5 fsvdiff = K * r;
-  return fsvdiff;
-}
 
 template <typename T>
 void ResidualGlobalCorrectionMakerBase::init_twice_active_var(T &ad, const unsigned int d_num, const unsigned int idx) const {

@@ -443,6 +443,21 @@ def nanoAOD_customizeData(process):
     process = nanoAOD_recalibrateMETs(process,isData=True)
     for modifier in run2_nanoAOD_94XMiniAODv1, run2_nanoAOD_94XMiniAODv2:
         modifier.toModify(process, lambda p: nanoAOD_runMETfixEE2017(p,isData=True))
+
+    # load geometry needed by g4e propagator
+    process.GlobalTag.toGet = cms.VPSet(
+                                cms.PSet(
+                                    record = cms.string("GeometryFileRcd"),tag = cms.string("XMLFILE_Geometry_2016_81YV1_Extended2016_mc"),label = cms.untracked.string("Extended"),
+                                    ),
+                                )
+
+    # load 3d field map and use it for g4e propagator
+    from MagneticField.ParametrizedEngine.parametrizedMagneticField_PolyFit3D_cfi import ParametrizedMagneticFieldProducer as PolyFit3DMagneticFieldProducer
+    process.PolyFit3DMagneticFieldProducer = PolyFit3DMagneticFieldProducer
+    fieldlabel = "PolyFit3DMf"
+    process.PolyFit3DMagneticFieldProducer.label = fieldlabel
+    process.Geant4ePropagator.MagneticFieldLabel = fieldlabel
+
     return process
 
 def nanoAOD_customizeMC(process):
@@ -450,6 +465,8 @@ def nanoAOD_customizeMC(process):
     process = nanoAOD_recalibrateMETs(process,isData=False)
     for modifier in run2_nanoAOD_94XMiniAODv1, run2_nanoAOD_94XMiniAODv2:
         modifier.toModify(process, lambda p: nanoAOD_runMETfixEE2017(p,isData=False))
+    # remove duplicate branch with incomplete content *TODO* make this more elegant
+    del process.muonExternalVecVarsTable.variables.cvhmergedGlobalIdxs
     return process
 
 ###Customizations needed for Wmass analysis                                                                                                              

@@ -17,6 +17,7 @@ GeantPropagatorESProducer::GeantPropagatorESProducer(const edm::ParameterSet &p)
   std::string myname = p.getParameter<std::string>("ComponentName");
   pset_ = p;
   plimit_ = pset_.getParameter<double>("PropagationPtotLimit");
+  fieldlabel_ = pset_.getParameter<std::string>("MagneticFieldLabel");
   setWhatProduced(this, myname);
 }
 
@@ -24,7 +25,7 @@ GeantPropagatorESProducer::~GeantPropagatorESProducer() {}
 
 std::unique_ptr<Propagator> GeantPropagatorESProducer::produce(const TrackingComponentsRecord &iRecord) {
   ESHandle<MagneticField> magfield;
-  iRecord.getRecord<IdealMagneticFieldRecord>().get(magfield);
+  iRecord.getRecord<IdealMagneticFieldRecord>().get(fieldlabel_, magfield);
 
   std::string pdir = pset_.getParameter<std::string>("PropagationDirection");
   std::string particleName = pset_.getParameter<std::string>("ParticleName");
