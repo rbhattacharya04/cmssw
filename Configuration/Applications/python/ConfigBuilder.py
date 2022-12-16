@@ -1716,7 +1716,7 @@ class ConfigBuilder(object):
             self._options.customisation_file.append("PhysicsTools/NanoAOD/nanoTP_cff.customizeNANOTP")
 
         if sequence in ["nanotpSequenceMC"]:
-            self._options.customisation_file.append("PhysicsTools/NanoAOD/nano_cff.nanoGenWmassCustomize_minimal")
+            self._options.customisation_file.append("PhysicsTools/NanoAOD/nano_cff.customizeGenLeptonPrecision")
 
     def prepare_EI(self, sequence = None):
         ''' Enrich the schedule with event interpretation '''

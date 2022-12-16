@@ -471,7 +471,7 @@ def nanoAOD_customizeMC(process):
 
 ###Customizations needed for Wmass analysis                                                                                                              
 ###increasing the precision of selected GenParticles.                                                                                                             
-def nanoGenWmassCustomize_minimal(process):
+def customizeGenLeptonPrecision(process):
     pdgSelection="?(abs(pdgId) == 11|| abs(pdgId)==13 || abs(pdgId)==15 ||abs(pdgId)== 12 || abs(pdgId)== 14 || abs(pdgId)== 16|| abs(pdgId)== 6|| abs(pdgId)== 24|| pdgId== 23|| pdgId== 25)"
 
     # Keep full precision for selected particles                                                                                       
@@ -485,7 +485,7 @@ def nanoGenWmassCustomize_minimal(process):
     return process
 
 def nanoGenWmassCustomize(process):
-    process = nanoGenWmassCustomize_minimal(process)
+    process = customizeGenLeptonPrecision(process)
     
     process.lheInfoTable.storeAllLHEInfo = True
 
