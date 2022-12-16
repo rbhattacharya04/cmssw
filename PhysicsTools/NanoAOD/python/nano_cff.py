@@ -473,6 +473,7 @@ def nanoAOD_customizeMC(process):
 ###increasing the precision of selected GenParticles.                                                                                                             
 def nanoGenWmassCustomize(process):
     pdgSelection="?(abs(pdgId) == 11|| abs(pdgId)==13 || abs(pdgId)==15 ||abs(pdgId)== 12 || abs(pdgId)== 14 || abs(pdgId)== 16|| abs(pdgId)== 6|| abs(pdgId)== 24|| pdgId== 23|| pdgId== 25)"
+
     # Keep full precision for selected particles                                                                                       
     ptPrecision="{}?{}:{}".format(pdgSelection, -1, genParticleTable.variables.pt.precision.value())
     process.genParticleTable.variables.pt.precision=cms.string(ptPrecision)
