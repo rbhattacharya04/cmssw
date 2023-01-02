@@ -322,7 +322,8 @@ muonMCTable = cms.EDProducer("CandMCMatchTableProducer",
 )
 
 muonSequence = cms.Sequence(slimmedMuonsUpdated+isoForMu + ptRatioRelForMu + slimmedMuonsWithUserData + finalMuons + finalLooseMuons)
-muonMC = cms.Sequence(trackrefitideal + mergedGlobalIdxs + muonsMCMatchForTable + muonMCTable + muonIdealTable + muonIdealExternalVecVarsTable)
+muonMCTP = cms.Sequence(muonsMCMatchForTable + muonMCTable)
+muonMC = cms.Sequence(trackrefitideal + mergedGlobalIdxs + muonMCTP + muonIdealTable + muonIdealExternalVecVarsTable)
 muonTables = cms.Sequence(muonFSRphotons + muonFSRassociation + muonMVATTH + muonMVALowPt + geopro + tracksfrommuons + trackrefit + muonTable + muonExternalVecVarsTable + fsrTable)
 
 # remove track refit stuff for low pu
