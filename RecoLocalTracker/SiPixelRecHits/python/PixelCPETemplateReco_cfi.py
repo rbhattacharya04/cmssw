@@ -15,7 +15,8 @@ templates = cms.ESProducer("PixelCPETemplateRecoESProducer",
     # True in Run II for offline RECO
     DoLorentz = cms.bool(True),
  
-    LoadTemplatesFromDB = cms.bool(True)
+    LoadTemplatesFromDB = cms.bool(True),
+    MagneticFieldLabel = cms.string(""),
 
 )
 

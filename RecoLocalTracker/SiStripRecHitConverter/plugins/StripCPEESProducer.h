@@ -25,6 +25,7 @@ class  StripCPEESProducer: public edm::ESProducer {
 
   CPE_t cpeNum;
   edm::ParameterSet parametersPSet;
+  std::string fieldlabel;
 
 };
 #endif

@@ -47,6 +47,7 @@ private:
   void updateMagneticField(edm::EventSetup const &es);
 
   G4RunManagerKernel *m_kernel;
+  std::string m_fieldlabel;
   edm::ParameterSet m_pField;
   SimActivityRegistry m_registry;
   std::vector<std::shared_ptr<SimWatcher>> m_watchers;

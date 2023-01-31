@@ -10,6 +10,7 @@ from TrackingTools.TrackRefitter.TracksToTrajectories_cff import *
 geopro = cms.EDProducer("GeometryProducer",
      UseMagneticField = cms.bool(True),
      UseSensitiveDetectors = cms.bool(False),
+     MagneticFieldLabel = cms.string(""),
      MagneticField = cms.PSet(
          UseLocalMagFieldManager = cms.bool(False),
          Verbosity = cms.untracked.bool(False),

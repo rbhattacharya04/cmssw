@@ -136,6 +136,8 @@ ResidualGlobalCorrectionMakerBase::ResidualGlobalCorrectionMakerBase(const edm::
   doRes_ = iConfig.getParameter<bool>("doRes");
   useIdealGeometry_ = iConfig.getParameter<bool>("useIdealGeometry");
   corFiles_ = iConfig.getParameter<std::vector<std::string>>("corFiles");
+  fieldlabel_ = iConfig.getParameter<std::string>("MagneticFieldLabel");
+
 
   inputBs_ = consumes<reco::BeamSpot>(edm::InputTag("offlineBeamSpot"));
 
@@ -347,7 +349,7 @@ ResidualGlobalCorrectionMakerBase::beginRun(edm::Run const& run, edm::EventSetup
 //   const MagneticField* field = thePropagator->magneticField();
 
   edm::ESHandle<MagneticField> magfield;
-  es.get<IdealMagneticFieldRecord>().get(magfield);
+  es.get<IdealMagneticFieldRecord>().get(fieldlabel_, magfield);
   auto field = magfield.product();
   
   std::set<std::pair<int, DetId> > parmset;

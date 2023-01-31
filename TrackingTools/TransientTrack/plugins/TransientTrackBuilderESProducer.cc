@@ -15,6 +15,7 @@ TransientTrackBuilderESProducer::TransientTrackBuilderESProducer(const edm::Para
 {
   std::string myname = p.getParameter<std::string>("ComponentName");
   pset_ = p;
+  fieldlabel_ = p.getParameter<std::string>("MagneticFieldLabel");
   setWhatProduced(this,myname);
 }
 
@@ -24,7 +25,7 @@ std::unique_ptr<TransientTrackBuilder>
 TransientTrackBuilderESProducer::produce(const TransientTrackRecord & iRecord){ 
 
   edm::ESHandle<MagneticField> magfield;
-  iRecord.getRecord<IdealMagneticFieldRecord>().get( magfield );     
+  iRecord.getRecord<IdealMagneticFieldRecord>().get(fieldlabel_, magfield );
   edm::ESHandle<GlobalTrackingGeometry> theTrackingGeometry;
   iRecord.getRecord<GlobalTrackingGeometryRecord>().get(theTrackingGeometry); 
 

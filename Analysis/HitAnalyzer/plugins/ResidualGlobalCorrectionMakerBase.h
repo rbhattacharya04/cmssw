@@ -262,6 +262,9 @@ protected:
   
   
   std::vector<std::string> corFiles_;
+
+  std::string fieldlabel_;
+
   
 //   SiStripClusterInfo siStripClusterInfo_;
 

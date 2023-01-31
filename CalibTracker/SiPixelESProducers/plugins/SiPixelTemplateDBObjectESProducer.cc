@@ -21,6 +21,7 @@
 using namespace edm;
 
 SiPixelTemplateDBObjectESProducer::SiPixelTemplateDBObjectESProducer(const edm::ParameterSet& iConfig) {
+	fieldlabel_ = iConfig.getParameter<std::string>("MagneticFieldLabel");
 	setWhatProduced(this);
 }
 
@@ -34,7 +35,7 @@ SiPixelTemplateDBObjectESProducer::~SiPixelTemplateDBObjectESProducer(){
 std::shared_ptr<const SiPixelTemplateDBObject> SiPixelTemplateDBObjectESProducer::produce(const SiPixelTemplateDBObjectESProducerRcd & iRecord) {
 	
 	ESHandle<MagneticField> magfield;
-	iRecord.getRecord<IdealMagneticFieldRecord>().get(magfield);
+	iRecord.getRecord<IdealMagneticFieldRecord>().get(fieldlabel_, magfield);
 
 	GlobalPoint center(0.0, 0.0, 0.0);
 	float theMagField = magfield.product()->inTesla(center).mag();
