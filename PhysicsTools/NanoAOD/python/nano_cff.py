@@ -451,12 +451,18 @@ def nanoAOD_customizeData(process):
                                     ),
                                 )
 
-    # load 3d field map and use it for g4e propagator
+    # load 3d field map and use it for g4e propagator, geant4 internals via geometry producer and a few other places related to the track refit
     from MagneticField.ParametrizedEngine.parametrizedMagneticField_PolyFit3D_cfi import ParametrizedMagneticFieldProducer as PolyFit3DMagneticFieldProducer
     process.PolyFit3DMagneticFieldProducer = PolyFit3DMagneticFieldProducer
     fieldlabel = "PolyFit3DMf"
     process.PolyFit3DMagneticFieldProducer.label = fieldlabel
+    process.geopro.MagneticFieldLabel = fieldlabel
     process.Geant4ePropagator.MagneticFieldLabel = fieldlabel
+    process.stripCPEESProducer.MagneticFieldLabel = fieldlabel
+    process.StripCPEfromTrackAngleESProducer.MagneticFieldLabel = fieldlabel
+    process.siPixelTemplateDBObjectESProducer.MagneticFieldLabel = fieldlabel
+    process.templates.MagneticFieldLabel = fieldlabel
+    process.trackrefit.MagneticFieldLabel = fieldlabel
 
     return process
 
