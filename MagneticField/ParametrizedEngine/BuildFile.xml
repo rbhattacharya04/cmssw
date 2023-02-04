@@ -1,3 +1,4 @@
+<flags CXXFLAGS="-fno-tree-vectorize"/>
 <use   name="DataFormats/GeometryVector"/>
 <!--use   name="FWCore/Framework"/-->
 <use   name="FWCore/ParameterSet"/>
