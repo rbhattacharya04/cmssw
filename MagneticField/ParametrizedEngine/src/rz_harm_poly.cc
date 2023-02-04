@@ -12,7 +12,7 @@ using namespace magfieldparam;
 
 //_______________________________________________________________________________
 unsigned rz_harm_poly::Cnt    = 0;      //Number of the "rz_harm_poly" objects
-double   rz_harm_poly::phival = -11111.;//Last phi value used
+double   rz_harm_poly::phival = std::numeric_limits<double>::infinity();//Last phi value used
 bool     rz_harm_poly::phi_set = false; //TRUE if phi value is set
 unsigned rz_harm_poly::MaxM   = 0;      //Max. M among "rz_harm_poly" objects
 
@@ -63,7 +63,7 @@ rz_harm_poly::~rz_harm_poly()
       TrigArr = nullptr;
       TASize = 0;
       MaxM = 0;
-      phival = -11111.;
+      phival = std::numeric_limits<double>::infinity();
       phi_set = false;
    }
 }
