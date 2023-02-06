@@ -30,6 +30,7 @@ StripCPEESProducer::StripCPEESProducer(const edm::ParameterSet & p)
 
   cpeNum = enumMap[type];
   parametersPSet = (p.exists("parameters") ? p.getParameter<edm::ParameterSet>("parameters") : p);
+  fieldlabel = p.getParameter<std::string>("MagneticFieldLabel");
   setWhatProduced(this,name);
 }
 
@@ -37,7 +38,7 @@ std::unique_ptr<StripClusterParameterEstimator> StripCPEESProducer::
 produce(const TkStripCPERecord & iRecord) 
 { 
   edm::ESHandle<TrackerGeometry> pDD;  iRecord.getRecord<TrackerDigiGeometryRecord>().get( pDD );
-  edm::ESHandle<MagneticField> magfield;  iRecord.getRecord<IdealMagneticFieldRecord>().get(magfield );
+  edm::ESHandle<MagneticField> magfield;  iRecord.getRecord<IdealMagneticFieldRecord>().get(fieldlabel, magfield );
   edm::ESHandle<SiStripLorentzAngle> lorentzAngle;   iRecord.getRecord<SiStripLorentzAngleDepRcd>().get(lorentzAngle);
   edm::ESHandle<SiStripBackPlaneCorrection> backPlaneCorrection; iRecord.getRecord<SiStripBackPlaneCorrectionDepRcd>().get(backPlaneCorrection);
   edm::ESHandle<SiStripConfObject> confObj;  iRecord.getRecord<SiStripConfObjectRcd>().get(confObj);

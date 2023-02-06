@@ -15,6 +15,7 @@ class  PixelCPETemplateRecoESProducer: public edm::ESProducer{
  private:
   edm::ParameterSet pset_;
   bool DoLorentz_;
+  std::string fieldlabel_;
 };
 
 

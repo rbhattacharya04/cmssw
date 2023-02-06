@@ -59,6 +59,7 @@ static void createWatchers(const edm::ParameterSet &iP,
 
 GeometryProducer::GeometryProducer(edm::ParameterSet const &p)
     : m_kernel(nullptr),
+      m_fieldlabel(p.getParameter<std::string>("MagneticFieldLabel")),
       m_pField(p.getParameter<edm::ParameterSet>("MagneticField")),
       m_attach(nullptr),
       m_p(p),
@@ -84,7 +85,7 @@ void GeometryProducer::updateMagneticField(edm::EventSetup const &es) {
   if (m_pUseMagneticField) {
     // setup the magnetic field
     edm::ESHandle<MagneticField> pMF;
-    es.get<IdealMagneticFieldRecord>().get(pMF);
+    es.get<IdealMagneticFieldRecord>().get(m_fieldlabel, pMF);
     const GlobalPoint g(0., 0., 0.);
     edm::LogInfo("GeometryProducer") << "B-field(T) at (0,0,0)(cm): " << pMF->inTesla(g);
 

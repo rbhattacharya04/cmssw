@@ -27,6 +27,7 @@ PixelCPETemplateRecoESProducer::PixelCPETemplateRecoESProducer(const edm::Parame
   DoLorentz_ = p.existsAs<bool>("DoLorentz")?p.getParameter<bool>("DoLorentz"):false;
 
   pset_ = p;
+  fieldlabel_ = p.getParameter<std::string>("MagneticFieldLabel");
   setWhatProduced(this,myname);
 
   //std::cout<<" from ES Producer Templates "<<myname<<" "<<DoLorentz_<<std::endl;  //dk
@@ -39,7 +40,7 @@ std::unique_ptr<PixelClusterParameterEstimator>
 PixelCPETemplateRecoESProducer::produce(const TkPixelCPERecord & iRecord){ 
 
   ESHandle<MagneticField> magfield;
-  iRecord.getRecord<IdealMagneticFieldRecord>().get(magfield );
+  iRecord.getRecord<IdealMagneticFieldRecord>().get(fieldlabel_, magfield );
 
   edm::ESHandle<TrackerGeometry> pDD;
   iRecord.getRecord<TrackerDigiGeometryRecord>().get( pDD );

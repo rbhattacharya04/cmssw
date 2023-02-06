@@ -17,6 +17,7 @@ class  TransientTrackBuilderESProducer: public edm::ESProducer{
   std::unique_ptr<TransientTrackBuilder> produce(const TransientTrackRecord &);
  private:
   edm::ParameterSet pset_;
+  std::string fieldlabel_;
 };
 
 

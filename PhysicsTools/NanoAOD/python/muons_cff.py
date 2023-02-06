@@ -144,6 +144,7 @@ trackrefit = cms.EDProducer('ResidualGlobalCorrectionMakerG4e',
                                    applyHitQuality = cms.bool(True),
                                    useIdealGeometry = cms.bool(False),
                                    corFiles = cms.vstring(),
+                                   MagneticFieldLabel = cms.string(""),
 )
 
 trackrefitideal = cms.EDProducer('ResidualGlobalCorrectionMakerG4e',
@@ -165,6 +166,7 @@ trackrefitideal = cms.EDProducer('ResidualGlobalCorrectionMakerG4e',
                                    applyHitQuality = cms.bool(True),
                                    useIdealGeometry = cms.bool(True),
                                    corFiles = cms.vstring(),
+                                   MagneticFieldLabel = cms.string(""),
 )
 
 mergedGlobalIdxs = cms.EDProducer("GlobalIdxProducer",

@@ -29,5 +29,8 @@ public:
   SiPixelTemplateDBObjectESProducer(const edm::ParameterSet& iConfig);
   ~SiPixelTemplateDBObjectESProducer() override;
   std::shared_ptr<const SiPixelTemplateDBObject> produce(const SiPixelTemplateDBObjectESProducerRcd &);
+
+private:
+  std::string fieldlabel_;
 };
 #endif
